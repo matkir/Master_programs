@@ -1,8 +1,20 @@
-from EncDec import *
+import numpy as np
+import sys,os
+import matplotlib.pyplot as plt
+import cv2
+from scipy import stats
+from keras.optimizers import Adam
+from tqdm import tqdm
+
+
 os.environ['CUDA_VISIBLE_DEVICES'] = ''
 
 class AE():
      def __init__(self):
+          """
+          Initializes and makes the autoencoder. 
+          Everything is saved as self
+          """
           self.img_rows = 720//2 # Original is ~720 
           self.img_cols = 576//2 # Original is ~576
           self.channels = 3   # RGB 
@@ -13,12 +25,14 @@ class AE():
                self.encoder.load_weights("encoder_weights.h5")
                self.autoencoder.load_weights("ae_weights.h5")               
      def buld_AE(self):
+          """
+          Imports the encoder, decoder and Autoencoder from the pacage
+          (remember to install package with pip in /matkirpack/)
+          """
+          from encdec.EncDec import build_encoder,build_decoder,build_AE
           self.input_img,self.encoded,self.encoder=build_encoder(self.img_shape)
           self.input_code,self.decoded,self.decoder=build_decoder(self.encoded)
           self.autoencoder=build_AE(self.encoder, self.decoder) 
-          
-          #end of decoder
-          
           if '-s' in sys.argv:          
                print("autoencoder")
                self.autoencoder.summary()
@@ -28,7 +42,15 @@ class AE():
                self.encoder.summary()
           
      def train(self, epochs=20, batch_size=32, save_interval=5):
-          TensorBoard(batch_size=batch_size)
+          """
+          Trainer: uses the self.autoencoder and the inputed dataset to train the wights
+          It does also save a sample every save interval
+          :param epochs: number of epochs run
+          :param batch_size: how many imgs in each batch
+          :param save_interval: how many epochs between each save
+     
+          """
+          
           X_train=self.load_polyp_data()
           loss=100
           for epoch in tqdm(range(epochs)):
@@ -61,11 +83,14 @@ class AE():
           
           
      def save_imgs(self, epoch,img):
+          """
+          Makes some predictions and asks 'plot' to plot them
+          :param epoch: used in the file name
+          :param img: takes images for deconstruction
+          """
                
-          #noise_enc=np.clip((np.random.normal(img,0.01)),-1,1)
           gen_enc = self.encoder.predict(img)
           
-          #noise_dec = np.random.normal(0, 1, (3,self.img_shape[0]//24,self.img_shape[1]//24,1))
           noise_dec = np.random.normal(0, 1, (3,540))
           gen_dec = self.decoder.predict(noise_dec)
           
@@ -92,10 +117,12 @@ class AE():
           return data
      
      def plot_1_to_255(self,enc_img,dec_img,ae_img,real_img,epoch):
+               """
+               takes images as -1,1 and converts them to 0,1 format.
+               Name is a misnomer
+               
+               """
                fig, axs = plt.subplots(3, 4) #3 of each picture
-               #dec_img=(dec_img*127.5)+127.5
-               #enc_img=np.squeeze((enc_img*127.5)+127.5) #remove silly dim
-               #ae_img=(ae_img*127.5)+127.5
                dec_img=(dec_img*0.5)+0.5
                if len(enc_img.shape)==2:
                     enc_img=np.repeat(np.expand_dims((enc_img*0.5)+0.5,axis=-1),enc_img.shape[1]//2,axis=-1) 

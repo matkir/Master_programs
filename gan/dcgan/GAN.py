@@ -1,14 +1,9 @@
+from encdec.EncDec import build_AE,build_decoder,build_encoder
 import sys,os
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
 from scipy import stats
-from keras.datasets import mnist
-from keras.layers import Input, Dense, Reshape, Flatten, Dropout
-from keras.layers import BatchNormalization, Activation, ZeroPadding2D
-from keras.layers.advanced_activations import LeakyReLU
-from keras.layers.convolutional import UpSampling2D, Conv2D, MaxPooling2D
-from keras.models import Sequential, Model, load_model
 from keras.optimizers import Adam
 from tqdm import tqdm
 os.environ['CUDA_VISIBLE_DEVICES'] = ''
