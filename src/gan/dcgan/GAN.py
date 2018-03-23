@@ -138,7 +138,7 @@ class GAN():
         noise = np.random.normal(0, 1, (r * c, 540))
         gen_imgs = self.generator.predict(noise)
         # Rescale images 0 - 1
-        gen_imgs = 0.5 * gen_imgs + 0.5
+        gen_imgs = np.clip(0.5 * gen_imgs + 0.5,0,1)
         fig, axs = plt.subplots(r, c)
         #fig.suptitle("DCGAN: Generated digits", fontsize=12)
         cnt = 0
