@@ -6,5 +6,5 @@ setup(name='matpack',
             author='Mathias Kirkerod',
             author_email='mathias.kirkerod@gmail.com',
             license='MIT',
-            packages=['encdec'],
+            packages=['encdec','plotload'],
             zip_safe=False)

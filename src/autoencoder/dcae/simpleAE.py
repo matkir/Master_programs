@@ -1,3 +1,5 @@
+from plotload import load_polyp_data
+from plotload import plot_1_to_255
 import numpy as np
 import sys,os
 import matplotlib.pyplot as plt
@@ -5,7 +7,6 @@ import cv2
 from scipy import stats
 from keras.optimizers import Adam
 from tqdm import tqdm
-
 
 os.environ['CUDA_VISIBLE_DEVICES'] = ''
 
@@ -50,8 +51,7 @@ class AE():
           :param save_interval: how many epochs between each save
      
           """
-          
-          X_train=self.load_polyp_data()
+          X_train=load_polyp_data(self.img_shape)
           loss=100
           for epoch in tqdm(range(epochs)):
                idx = np.random.randint(0, X_train.shape[0], batch_size)
@@ -96,10 +96,10 @@ class AE():
           
           gen_ae=self.autoencoder.predict(img)
 
-          self.plot_1_to_255(gen_enc, gen_dec, gen_ae,img,epoch)     
+          plot_1_to_255(gen_enc, gen_dec, gen_ae,img,epoch)     
      
      
-     
+     """
      def load_polyp_data(self):
           if '-l' in sys.argv:
                return np.load("train_data.npy")
@@ -115,21 +115,24 @@ class AE():
           data = (data.astype(np.float32) - 127.5) / 127.5
           np.save("train_data.npy", data)
           return data
-     
+     """
+     """ 
      def plot_1_to_255(self,enc_img,dec_img,ae_img,real_img,epoch):
                """
+     """
                takes images as -1,1 and converts them to 0,1 format.
                Name is a misnomer
                
-               """
+     """
+     """
                fig, axs = plt.subplots(3, 4) #3 of each picture
                dec_img=(dec_img*0.5)+0.5
                if len(enc_img.shape)==2:
                     enc_img=np.repeat(np.expand_dims((enc_img*0.5)+0.5,axis=-1),enc_img.shape[1]//2,axis=-1) 
                else:
                     enc_img=np.squeeze((enc_img*0.5)+0.5)#remove silly dim
-               ae_img=(ae_img*0.5)+0.5
-               real_img=(real_img*0.5)+0.5
+               ae_img=np.clip((ae_img*0.5)+0.5,0,1)
+               real_img=np.clip((real_img*0.5)+0.5,0,1)
                cnt1=0
                cnt2=0
                cnt3=0
@@ -161,7 +164,7 @@ class AE():
                plt.suptitle('decoded img | encoded img | encoded then decoded', fontsize=16)
                fig.savefig("images/mnist_%d.png" % epoch)
                plt.close()               
-         
+         """
 
 if __name__ == '__main__':
      if '-i' in sys.argv:
@@ -178,7 +181,7 @@ if __name__ == '__main__':
           a=int(a)
      else:
           a=50
-     obj.train(epochs=a, batch_size=80, save_interval=100)
+     obj.train(epochs=a, batch_size=80, save_interval=5)
 
 
 

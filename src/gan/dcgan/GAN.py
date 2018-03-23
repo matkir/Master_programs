@@ -1,4 +1,5 @@
-from encdec.EncDec import build_AE,build_decoder,build_encoder
+from encdec.EncDec import build_AE,build_decoder,build_encoder,build_discriminator,build_GAN
+from plotload.PlotLoad import plot_1_to_255, load_polyp_data
 import sys,os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -14,33 +15,15 @@ class GAN():
         self.img_rows = 720//2#240 # Original is ~720 
         self.img_cols = 576//2#192 # Original is ~576
         self.channels = 3   # RGB        
+        self.img_shape=(self.img_rows,self.img_cols,self.channels)
         optimizer = Adam(0.0002, 0.5)
-
-        # Build and compile the discriminator
-        self.discriminator = self.build_discriminator()
-        self.discriminator.compile(loss='binary_crossentropy', 
-            optimizer=optimizer,
-            metrics=['accuracy'])
-    
-        # Build and compile the generator
-        self.generator = self.build_generator()
-        self.generator.compile(loss='binary_crossentropy', optimizer=optimizer)
-    
-        # The generator takes noise as input and generated imgs
-        z = Input(shape=(100,))
-        img = self.generator(z)
-    
-        # For the combined model we will only train the generator
-        #self.discriminator.trainable = False
-    
-        # The valid takes generated images as input and determines validity
-        valid = self.discriminator(img)
-    
-        # The combined model  (stacked generator and discriminator) takes
-        # noise as input => generates images => determines validity 
-        self.combined = Model(z, valid)
-        self.combined.compile(loss='binary_crossentropy', optimizer=optimizer)        
-        if sys.argv[1]=='load':
+        
+        (Igen,Ogen,self.generator)=build_decoder((540,))
+        (Idisc,Odisc,self.discriminator)=build_discriminator(self.img_shape)
+        self.discriminator.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
+        self.combined=build_GAN(self.generator,self.discriminator,opt=optimizer,l='binary_crossentropy')
+        
+        if '-w' in sys.argv:
             self.discriminator.load_weights("discriminator_weights.h5")
             self.generator.load_weights("generator_weights.h5")
             self.combined.load_weights("combined_weights.h5")
@@ -67,7 +50,7 @@ class GAN():
         model.add(Conv2D(3, kernel_size=4, padding="same"))
         model.add(Dropout(0.5))
         model.add(Activation("tanh"))
-        if sys.argv[0] is not 'a':
+        if '-s' in sys.argv:
             model.summary()
 
         noise = Input(shape=noise_shape)
@@ -75,36 +58,7 @@ class GAN():
 
         r= Model(noise, img)
         return r
-    """
-    def build_generator(self):
-
-        noise_shape = (100,)
-
-        model = Sequential()
-
-        model.add(Dense(60*48*3, activation="relu", input_shape=noise_shape))
-        model.add(Reshape((60, 48, 3)))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(UpSampling2D())
-        model.add(Conv2D(64, kernel_size=4, padding="same"))
-        model.add(Activation("relu"))
-        model.add(BatchNormalization(momentum=0.8)) 
-        model.add(UpSampling2D())
-        model.add(Conv2D(16, kernel_size=2, padding="same"))
-        model.add(Activation("relu"))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(Conv2D(3, kernel_size=4, padding="same"))
-        model.add(Dropout(0.5))
-        model.add(Activation("tanh"))
-        if sys.argv[0] is not 'a':
-            model.summary()
-
-        noise = Input(shape=noise_shape)
-        img = model(noise)
-
-        r= Model(noise, img)
-        return r
-    """
+    
     def build_discriminator(self):
 
         img_shape = (self.img_rows, self.img_cols, self.channels)
@@ -122,7 +76,7 @@ class GAN():
 
         model.add(Dense(1, activation='sigmoid'))
 
-        if sys.argv[0] is not 'a':
+        if '-s' in sys.argv:
             model.summary()
 
         img = Input(shape=img_shape)
@@ -131,75 +85,36 @@ class GAN():
         r = Model(img, validity)
         return r
    
-    """
-    def build_discriminator(self):
-
-        img_shape = (self.img_rows, self.img_cols, self.channels)
-
-        model = Sequential()
-
-        model.add(Conv2D(32, kernel_size=3, strides=2, input_shape=img_shape, padding="same"))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(Dropout(0.25))
-        model.add(Conv2D(64, kernel_size=3, strides=2, padding="same"))
-        model.add(ZeroPadding2D(padding=((0,1),(0,1))))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(Dropout(0.25))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(Conv2D(128, kernel_size=3, strides=2, padding="same"))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(Dropout(0.25))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(Conv2D(256, kernel_size=3, strides=1, padding="same"))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(Dropout(0.25))
-
-        model.add(Flatten())
-        model.add(Dense(1, activation='sigmoid'))
-
-        if sys.argv[0] is not 'a':
-            model.summary()
-
-        img = Input(shape=img_shape)
-        validity = model(img)
-        
-        r = Model(img, validity)
-        return r
-        """
+    
     def train(self, epochs, batch_size=128, save_interval=50):
-        X_train=self.load_polyp_data()
-        # Rescale -1 to 1
-        
-        
+        X_train=load_polyp_data(self.img_shape)
         half_batch=batch_size
-        #half_batch=1
         
 
         for epoch in tqdm(range(epochs)):
 
             #  Train Discriminator
-            for _ in range(1):
-                self.trainable(self.discriminator, True)
-                #training the discriminator 10 times
-                idx = np.random.randint(0, X_train.shape[0], half_batch)
-                imgs = X_train[idx]
-                
-                noise = np.random.normal(0, 1, (half_batch,100))
-                gen_imgs = self.generator.predict(noise)
-        
-                # Train the discriminator (real classified as ones and generated as zeros)
-                
-                d_loss_real = self.discriminator.train_on_batch(imgs, 0.5*np.random.random_sample((half_batch,1))+0.8)
-                #d_loss_real = self.discriminator.train_on_batch(imgs, np.ones((half_batch, 1)))
-                
-                #d_loss_fake = self.discriminator.train_on_batch(gen_imgs, np.zeros((half_batch, 1)))
-                d_loss_fake = self.discriminator.train_on_batch(gen_imgs, 0.3*np.random.random_sample((half_batch,1)))
-                
-                d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
+            self.trainable(self.discriminator, True)
+
+            idx = np.random.randint(0, X_train.shape[0], half_batch)
+            imgs = X_train[idx]
+            
+            noise = np.random.normal(0, 1, (half_batch,540))
+            gen_imgs = self.generator.predict(noise)
+    
+           
+           
+            # Train the discriminator (real classified as ones and generated as zeros) 
+            d_loss_real = self.discriminator.train_on_batch(imgs, 0.5*np.random.random_sample((half_batch,1))+0.8)
+            #d_loss_real = self.discriminator.train_on_batch(imgs, np.ones((half_batch, 1)))
+            #d_loss_fake = self.discriminator.train_on_batch(gen_imgs, np.zeros((half_batch, 1)))
+            d_loss_fake = self.discriminator.train_on_batch(gen_imgs, 0.3*np.random.random_sample((half_batch,1)))
+            
+            d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
 
             #  Train Generator
             self.trainable(self.discriminator, False)
-            noise = np.random.normal(0, 1, (half_batch*2, 100))
+            noise = np.random.normal(0, 1, (half_batch*2, 540))
             # Train the generator (wants discriminator to mistake images as real)
             g_loss = self.combined.train_on_batch(noise, np.ones((half_batch*2,1)))
 
@@ -220,7 +135,7 @@ class GAN():
 
     def save_imgs(self, epoch):
         r, c = 5, 5
-        noise = np.random.normal(0, 1, (r * c, 100))
+        noise = np.random.normal(0, 1, (r * c, 540))
         gen_imgs = self.generator.predict(noise)
         # Rescale images 0 - 1
         gen_imgs = 0.5 * gen_imgs + 0.5
@@ -233,13 +148,13 @@ class GAN():
                     axs[i,j].imshow(gen_imgs[cnt, :,:,:])
                     axs[i,j].axis('off')
                     cnt += 1
-            fig.savefig("dcgan/images/mnist_%d.png" % epoch)
+            fig.savefig("images/mnist_%d.png" % epoch)
             plt.close()
         except Exception as e: 
             print(e)
 
 
-
+    """
     def load_polyp_data(self):
         if sys.argv[1] is 'fast':
             return np.load("train_data.npy")
@@ -267,16 +182,16 @@ class GAN():
                        batch_size=32,
                        class_mode=None)          
         return data_generator    
-    
+    """
     def trainable(self,model, status):
         for layer in model.layers:
             layer.trainable = status
-            
+       
 
 
 
 if __name__ == '__main__':
-    if sys.argv[1]=="img":
+    if "-img" in sys.argv:
         data=np.load("train_data.npy")
         a = (data.astype(np.float32) - 127.5) / 127.5
         a = 0.5 * a + 0.5
@@ -287,9 +202,9 @@ if __name__ == '__main__':
         sys.exit()
         
     obj = GAN()
-    a=sys.argv[2]
+    a=sys.argv[1]
     if int(a):
         a=int(a)
     else:
         a=50
-    obj.train(epochs=a, batch_size=4, save_interval=5)
+    obj.train(epochs=a, batch_size=20, save_interval=5)
