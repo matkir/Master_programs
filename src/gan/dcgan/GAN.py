@@ -23,6 +23,10 @@ class GAN():
         self.discriminator.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
         self.combined=build_GAN(self.generator,self.discriminator,opt=optimizer,l='binary_crossentropy')
         
+        #adding the ae to decode the img,for fun
+        _,_,self.tester=build_decoder((540,))
+        self.tester.load_weights("../../autoencoder/dcae/decoder_weights.h5")
+        
         if '-w' in sys.argv:
             self.discriminator.load_weights("discriminator_weights.h5")
             self.generator.load_weights("generator_weights.h5")
@@ -105,18 +109,22 @@ class GAN():
            
            
             # Train the discriminator (real classified as ones and generated as zeros) 
-            d_loss_real = self.discriminator.train_on_batch(imgs, 0.5*np.random.random_sample((half_batch,1))+0.8)
-            #d_loss_real = self.discriminator.train_on_batch(imgs, np.ones((half_batch, 1)))
-            #d_loss_fake = self.discriminator.train_on_batch(gen_imgs, np.zeros((half_batch, 1)))
-            d_loss_fake = self.discriminator.train_on_batch(gen_imgs, 0.3*np.random.random_sample((half_batch,1)))
+            soft=False
+            if soft:
+                d_loss_real = self.discriminator.train_on_batch(imgs, 0.5*np.random.random_sample((half_batch,1))+0.8)
+                d_loss_fake = self.discriminator.train_on_batch(gen_imgs, 0.3*np.random.random_sample((half_batch,1)))
+            else:
+                d_loss_real = self.discriminator.train_on_batch(imgs, np.ones((half_batch, 1)))
+                d_loss_fake = self.discriminator.train_on_batch(gen_imgs, np.zeros((half_batch, 1)))
             
             d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
 
             #  Train Generator
             self.trainable(self.discriminator, False)
-            noise = np.random.normal(0, 1, (half_batch*2, 540))
-            # Train the generator (wants discriminator to mistake images as real)
-            g_loss = self.combined.train_on_batch(noise, np.ones((half_batch*2,1)))
+            for _ in range(1):
+                noise = np.random.normal(0, 1, (half_batch*2, 540))
+                # Train the generator (wants discriminator to mistake images as real)
+                g_loss = self.combined.train_on_batch(noise, np.ones((half_batch*2,1)))
 
             # Plot the progress
             print ("%d [D loss: %f, acc.: %.2f%%] [G loss: %f]" % (epoch, d_loss[0], 100*d_loss[1], g_loss))
@@ -137,52 +145,34 @@ class GAN():
         r, c = 5, 5
         noise = np.random.normal(0, 1, (r * c, 540))
         gen_imgs = self.generator.predict(noise)
+        
         # Rescale images 0 - 1
         gen_imgs = np.clip(0.5 * gen_imgs + 0.5,0,1)
         fig, axs = plt.subplots(r, c)
         #fig.suptitle("DCGAN: Generated digits", fontsize=12)
         cnt = 0
+        
+        gen2_imgs =self.tester.predict(noise)
+        gen2_imgs = np.clip(0.5 * gen2_imgs + 0.5,0,1)
+        
         try: 
             for i in range(r):
                 for j in range(c):
-                    axs[i,j].imshow(gen_imgs[cnt, :,:,:])
-                    axs[i,j].axis('off')
-                    cnt += 1
+                    if i == 0:
+                        axs[i,j].imshow(gen2_imgs[cnt, :,:,:])
+                        axs[i,j].axis('off')
+                        cnt += 1
+                    else:
+                        axs[i,j].imshow(gen_imgs[cnt, :,:,:])
+                        axs[i,j].axis('off')
+                        cnt += 1
             fig.savefig("images/mnist_%d.png" % epoch)
             plt.close()
         except Exception as e: 
             print(e)
 
 
-    """
-    def load_polyp_data(self):
-        if sys.argv[1] is 'fast':
-            return np.load("train_data.npy")
-        data=np.ndarray(shape=(1000, int(720//2), int(576//2), 3),dtype=np.int32)
-        folder ='../../../kvasir-dataset-v2/blanding' 
-        i=0
-        for img in tqdm(os.listdir(folder)):
-            if i==1000:
-                break
-            path=os.path.join(folder,img)
-            save=cv2.imread(path)
-            save=cv2.resize(save,(int(576//2),int(720//2)))
-            data[i]=(np.roll(np.array(save),1,axis=-1))
-            i+=1
-        np.save("train_data.npy", data)
-        data = (data.astype(np.float32) - 127.5) / 127.5
-        return data
-   
-    def flow_polyp_data(self):
-        data = ImageDataGenerator(rescale=1/127.5+0.5)
-        folder ='../../../kvasir-dataset-v2/polyps' 
-        data_generator = data.flow_from_directory(
-                       folder,
-                       target_size=(720, 576),
-                       batch_size=32,
-                       class_mode=None)          
-        return data_generator    
-    """
+
     def trainable(self,model, status):
         for layer in model.layers:
             layer.trainable = status
@@ -207,4 +197,4 @@ if __name__ == '__main__':
         a=int(a)
     else:
         a=50
-    obj.train(epochs=a, batch_size=20, save_interval=5)
+    obj.train(epochs=a, batch_size=8, save_interval=5)
