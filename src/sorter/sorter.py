@@ -11,7 +11,7 @@ Navie sorting, just looking at pixel [520,50] to see if the px value is below a 
 
 
 def data():
-    folder ='../../../kvasir-dataset-v2/polyps' 
+    folder ='../../../kvasir-dataset-v2/blanding' 
     green_folder ='../../../kvasir-dataset-v2/green' 
     none_folder ='../../../kvasir-dataset-v2/none' 
     
