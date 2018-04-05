@@ -20,7 +20,7 @@ def load_polyp_data(img_shape,data_type=None):
         path=os.path.join(folder,img)
         save=cv2.cvtColor(cv2.imread(path), cv2.COLOR_BGR2RGB)
         save=cv2.resize(save,(img_shape[1],img_shape[0]))
-        data[i]=(np.roll(np.array(save),1,axis=-1))
+        data[i]=save#(np.roll(np.array(save),1,axis=-1))
         i+=1
     data = (data.astype(np.float32) - 127.5) / 127.5
     np.save("train_data.npy", data)

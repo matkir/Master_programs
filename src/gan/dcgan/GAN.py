@@ -161,7 +161,7 @@ class GAN():
         if sample is None:
             gen3_imgs=gen_imgs
         else:
-            gen3_imgs=np.clip(sample,0,1)
+            gen3_imgs=np.clip(0.5*sample+0.5,0,1)
         try: 
             for i in range(r):
                 for j in range(c):
