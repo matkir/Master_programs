@@ -109,7 +109,7 @@ class GAN():
            
            
             # Train the discriminator (real classified as ones and generated as zeros) 
-            soft=False
+            soft=True
             if soft:
                 d_loss_real = self.discriminator.train_on_batch(imgs, 0.5*np.random.random_sample((half_batch,1))+0.8)
                 d_loss_fake = self.discriminator.train_on_batch(gen_imgs, 0.3*np.random.random_sample((half_batch,1)))
@@ -166,7 +166,7 @@ class GAN():
                         axs[i,j].imshow(gen_imgs[cnt, :,:,:])
                         axs[i,j].axis('off')
                         cnt += 1
-            fig.savefig("images/mnist_%d.png" % epoch)
+            fig.savefig("images/DCGAN_%d.png" % epoch)
             plt.close()
         except Exception as e: 
             print(e)
@@ -183,8 +183,8 @@ class GAN():
 if __name__ == '__main__':
     if "-img" in sys.argv:
         data=np.load("train_data.npy")
-        a = (data.astype(np.float32) - 127.5) / 127.5
-        a = 0.5 * a + 0.5
+        #data = (data.astype(np.float32) - 127.5) / 127.5
+        a = 0.5 * data + 0.5
         
        
         plt.imshow(a[np.random.randint(999),:,:,:])

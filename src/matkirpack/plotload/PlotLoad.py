@@ -7,7 +7,8 @@ def load_polyp_data(img_shape):
     if '-l' in sys.argv:
         return np.load("train_data.npy")
     data=np.ndarray(shape=(2000, img_shape[0], img_shape[1], img_shape[2]),dtype=np.int32)
-    folder ='../../../kvasir-dataset-v2/blanding' 
+    folder ='../../../../kvasir-dataset-v2/blanding' #TODO MAKE STATIC
+    folder ='../../../../kvasir-dataset-v2/none' #TODO MAKE STATIC
     i=0
     for img in tqdm(os.listdir(folder)):
         path=os.path.join(folder,img)

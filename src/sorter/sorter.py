@@ -2,6 +2,7 @@ import os
 import cv2
 from tqdm import tqdm
 from shutil import copyfile
+import sys
 """
 Navie sorting, just looking at pixel [520,50] to see if the px value is below a tresh
 
@@ -11,10 +12,12 @@ Navie sorting, just looking at pixel [520,50] to see if the px value is below a 
 
 
 def data():
-    folder ='../../../kvasir-dataset-v2/blanding' 
-    green_folder ='../../../kvasir-dataset-v2/green' 
-    none_folder ='../../../kvasir-dataset-v2/none' 
     
+    if not os.path.exists(green_folder):
+        os.makedirs(green_folder)    
+    if not os.path.exists(none_folder):
+        os.makedirs(none_folder)    
+   
     for img in tqdm(os.listdir(folder)):
         path=os.path.join(folder,img)
         save=cv2.imread(path)
@@ -24,4 +27,14 @@ def data():
             if '78f877f3-083c-40ef-a82c-65764f6ab285' in img:
                 print(img)
             copyfile(path, os.path.join(none_folder,img))
-data()
+
+if len(sys.argv)!=2:
+    folder ='../../../kvasir-dataset-v2/blanding' 
+    none_folder ='../../../kvasir-dataset-v2/none' 
+    green_folder ='../../../kvasir-dataset-v2/green' 
+    data()
+else:
+    folder ='../kvasir-dataset-v2/blanding' 
+    none_folder ='../kvasir-dataset-v2/none' 
+    green_folder ='../kvasir-dataset-v2/green' 
+    data()
