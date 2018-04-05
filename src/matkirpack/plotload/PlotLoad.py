@@ -3,16 +3,22 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-def load_polyp_data(img_shape):
+def load_polyp_data(img_shape,data_type=None):
+    """
+    Loads the polyp data
+    """
     if '-l' in sys.argv:
         return np.load("train_data.npy")
-    data=np.ndarray(shape=(2000, img_shape[0], img_shape[1], img_shape[2]),dtype=np.int32)
-    folder ='../../../../kvasir-dataset-v2/blanding' #TODO MAKE STATIC
-    folder ='../../../../kvasir-dataset-v2/none' #TODO MAKE STATIC
+    if data_type==None:
+        folder ='../../../../kvasir-dataset-v2/none' #TODO MAKE STATIC
+    else:
+        folder ='../../../../kvasir-dataset-v2/blanding' #TODO MAKE STATIC
+    data=np.ndarray(shape=(len(os.listdir(folder)), img_shape[0], img_shape[1], img_shape[2]),dtype=np.int32)
+    print(f"loading {len(os.listdir(folder))} images")
     i=0
     for img in tqdm(os.listdir(folder)):
         path=os.path.join(folder,img)
-        save=cv2.imread(path)
+        save=cv2.cvtColor(cv2.imread(path), cv2.COLOR_BGR2RGB)
         save=cv2.resize(save,(img_shape[1],img_shape[0]))
         data[i]=(np.roll(np.array(save),1,axis=-1))
         i+=1

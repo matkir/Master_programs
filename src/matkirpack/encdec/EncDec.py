@@ -21,7 +21,7 @@ def build_encoder(img_shape):
     """
     Encoder
     
-    This encoder is suposed to be used for the GAN, but is trained with an AE
+    This encoder is suposed to be used for the GAN, but is trained with an AE (in the future)
     
     
     Important, image is in the range -1->1 so tanh is better.
@@ -54,21 +54,24 @@ def build_decoder(encoded):
     :return: returns "input_code" wich is the input layer, "decoded" which is the last layer, and the model.
     """
     if type(encoded)==type((1,1)):        
-        input_code=Input(shape=encoded)
+        s=encoded
     else:
-        input_code=Input(shape=encoded.get_shape().as_list()[1:])
-    x = Reshape((720//48,576//48,3))(input_code)
+        s=encoded.get_shape().as_list()[1:]
+    
+    input_code=Input(shape=s)
+    x = Dense(540)(input_code)
+    x = Reshape((720//48,576//48,3))(x)
     x = Conv2D(1, (3, 3), padding='same')(x)
     x = LeakyReLU()(x)
     x = BatchNormalization(momentum=0.8)(x)
     x = UpSampling2D((3, 3))(x)
     x = Conv2D(8, (3, 3), padding='same')(x)
     x = LeakyReLU()(x)
-    x = BatchNormalization(momentum=0.8)(x)
-    x = UpSampling2D((2, 2))(x)
-    x = Dropout(0.25)(x)
-    x = Conv2D(8, (3, 3), padding='same')(x)
-    x = LeakyReLU()(x)
+    #x = BatchNormalization(momentum=0.8)(x)
+    #x = UpSampling2D((2, 2))(x)
+    #x = Dropout(0.25)(x)
+    #x = Conv2D(8, (3, 3), padding='same')(x)
+    #x = LeakyReLU()(x)
     x = BatchNormalization(momentum=0.8)(x)
     x = UpSampling2D((2, 2))(x)
     x = Conv2D(3, (3, 3), padding='same')(x)

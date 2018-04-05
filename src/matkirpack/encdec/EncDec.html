@@ -1,0 +1,51 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head><title>Python: module EncDec</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head><body bgcolor="#f0f0f8">
+
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="heading">
+<tr bgcolor="#7799ee">
+<td valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial">&nbsp;<br><big><big><strong>EncDec</strong></big></big></font></td
+><td align=right valign=bottom
+><font color="#ffffff" face="helvetica, arial"><a href=".">index</a><br><a href="file:/home/mathias/Documents/Master_programs/src/matkirpack/encdec/EncDec.py">/home/mathias/Documents/Master_programs/src/matkirpack/encdec/EncDec.py</a></font></td></tr></table>
+    <p><tt>To&nbsp;generate&nbsp;HTML&nbsp;documentation&nbsp;for&nbsp;this&nbsp;module&nbsp;issue&nbsp;the<br>
+command:<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;pydoc&nbsp;-w&nbsp;foo<br>
+&nbsp;<br>
+&nbsp;<br>
+This&nbsp;is&nbsp;the&nbsp;encoder&nbsp;and&nbsp;decoder&nbsp;used&nbsp;in&nbsp;the&nbsp;master&nbsp;thesis.&nbsp;This&nbsp;is&nbsp;a&nbsp;package,&nbsp;and&nbsp;in&nbsp;the&nbsp;future,&nbsp;it&nbsp;will&nbsp;contain&nbsp;multiple&nbsp;different&nbsp;<br>
+encoders&nbsp;and&nbsp;decoders.</tt></p>
+<p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#eeaa77">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Functions</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#eeaa77"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl><dt><a name="-build_AE"><strong>build_AE</strong></a>(e, d, opt='adam', l='mse')</dt><dd><tt>Autoencoder<br>
+:param&nbsp;e:&nbsp;Model&nbsp;of&nbsp;encoder<br>
+:param&nbsp;d:&nbsp;Model&nbsp;of&nbsp;decoder<br>
+:param&nbsp;opt:&nbsp;either&nbsp;optimizer&nbsp;or&nbsp;string<br>
+:param&nbsp;l:&nbsp;loss&nbsp;function<br>
+:return:&nbsp;Return&nbsp;the&nbsp;compiled&nbsp;model.</tt></dd></dl>
+ <dl><dt><a name="-build_GAN"><strong>build_GAN</strong></a>(e, d, opt='adam', l='binary_crossentropy')</dt></dl>
+ <dl><dt><a name="-build_decoder"><strong>build_decoder</strong></a>(encoded)</dt><dd><tt>Decoder<br>
+:param&nbsp;encoded:&nbsp;the&nbsp;layer&nbsp;that&nbsp;is&nbsp;the&nbsp;input&nbsp;of&nbsp;the&nbsp;decoder&nbsp;(typically&nbsp;the&nbsp;encoded&nbsp;layer&nbsp;from&nbsp;the&nbsp;encoder)<br>
+:return:&nbsp;returns&nbsp;"input_code"&nbsp;wich&nbsp;is&nbsp;the&nbsp;input&nbsp;layer,&nbsp;"decoded"&nbsp;which&nbsp;is&nbsp;the&nbsp;last&nbsp;layer,&nbsp;and&nbsp;the&nbsp;model.</tt></dd></dl>
+ <dl><dt><a name="-build_discriminator"><strong>build_discriminator</strong></a>(shape)</dt><dd><tt>discriminator&nbsp;so&nbsp;tell&nbsp;if&nbsp;an&nbsp;image&nbsp;is&nbsp;real&nbsp;or&nbsp;fake.<br>
+:param&nbsp;shape:&nbsp;tuple&nbsp;containing&nbsp;the&nbsp;sape&nbsp;if&nbsp;the&nbsp;input,&nbsp;usually&nbsp;the&nbsp;shape&nbsp;of&nbsp;the&nbsp;image<br>
+:return:&nbsp;model&nbsp;outputting&nbsp;true/false</tt></dd></dl>
+ <dl><dt><a name="-build_encoder"><strong>build_encoder</strong></a>(img_shape)</dt><dd><tt>Encoder<br>
+&nbsp;<br>
+This&nbsp;encoder&nbsp;is&nbsp;suposed&nbsp;to&nbsp;be&nbsp;used&nbsp;for&nbsp;the&nbsp;GAN,&nbsp;but&nbsp;is&nbsp;trained&nbsp;with&nbsp;an&nbsp;AE<br>
+&nbsp;<br>
+&nbsp;<br>
+Important,&nbsp;image&nbsp;is&nbsp;in&nbsp;the&nbsp;range&nbsp;-1-&gt;1&nbsp;so&nbsp;tanh&nbsp;is&nbsp;better.<br>
+https://github.com/soumith/ganhacks&nbsp;talks&nbsp;about&nbsp;not&nbsp;using&nbsp;0-&gt;1<br>
+&nbsp;<br>
+:param&nbsp;img_shape:&nbsp;The&nbsp;shape&nbsp;of&nbsp;the&nbsp;input&nbsp;image&nbsp;as&nbsp;a&nbsp;tuple&nbsp;containing&nbsp;shape<br>
+:return:&nbsp;returns&nbsp;"input_img"&nbsp;wich&nbsp;is&nbsp;the&nbsp;input&nbsp;layer,&nbsp;"encoded"&nbsp;which&nbsp;is&nbsp;the&nbsp;last&nbsp;layer,&nbsp;and&nbsp;the&nbsp;model.</tt></dd></dl>
+</td></tr></table>
+</body></html>

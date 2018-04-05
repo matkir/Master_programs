@@ -18,8 +18,8 @@ import numpy as np
 
 class ContextEncoder():
     def __init__(self):
-        self.img_rows = 720//2 
-        self.img_cols = 576//2
+        self.img_rows = 720//2//2 
+        self.img_cols = 576//2//2
         self.mask_height = 50 # size of green
         self.mask_width = 50 # ---||----
         self.channels = 3
