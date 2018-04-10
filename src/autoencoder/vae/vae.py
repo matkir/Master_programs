@@ -13,18 +13,14 @@ import matplotlib.pyplot as plt
 from scipy.stats import norm
 
 
-from keras.layers import Input, Dense, Reshape, Flatten, Dropout, MaxPooling2D,AveragePooling2D, UpSampling2D
+from keras import backend as K
+from keras import metrics
+from keras.layers import Input, Dense, Reshape, Flatten, Dropout, MaxPooling2D,AveragePooling2D, UpSampling2D, Lambda
 from keras.layers import BatchNormalization, Activation, ZeroPadding2D
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers.convolutional import UpSampling2D, Conv2D
 from keras.models import Sequential, Model
 
-from keras.layers import Input, Dense, Lambda
-from keras.models import Model
-from keras import backend as K
-from keras import metrics
-from keras.datasets import mnist
-import tensorflow as tf
 
 batch_size = 100
 original_dim = 784
@@ -45,7 +41,7 @@ class VAE():
         
     
         (input_encoder,output_encoder,self.encoder,z_mean,z_log_var)=self.build_encoder(self.img_shape,self.latent_dim_int)
-        (input_decoder,output_decoder,self.decoder)=self.build_decoder(output_decoder)
+        (input_decoder,output_decoder,self.decoder)=self.build_decoder(output_encoder)
 
         
         vae=Model(input_encoder,output_decoder)
@@ -65,13 +61,16 @@ class VAE():
     def build_encoder(self,img_shape,latent_dim):
         
         def sampling(args):
+            #sampling used for lambda layer, #TODO find out what it does.
             z_mean, z_log_sigma = args
             epsilon = K.random_normal(shape=(batch_size, latent_dim),
                                       mean=0., stddev=epsilon_std)
             return z_mean + K.exp(z_log_sigma) * epsilon            
-        
+         
         input_img = Input(shape=(img_shape))
+        
         x = Conv2D(16, (3, 3), activation='tanh', padding='same')(input_img)
+        x = LeakyReLU()(x)
         x = AveragePooling2D((2, 2), padding='same')(x)
         x = Conv2D(8, (3, 3), padding='same')(x)
         x = LeakyReLU()(x)
@@ -87,23 +86,11 @@ class VAE():
         z_mean = Dense(latent_dim)(h)
         z_log_var = Dense(latent_dim)(h)
         encoded=Lambda(sampling, output_shape=self.latent_dim)([z_mean,z_log_var])
-        Encoder=Model(input_img,encoded,name='encoder')
-        return input_img,encoded,Encoder,z_mean,z_log_var        
-        
-    def build_decoder(self,encoded):
         """
-        Decoder
-        :param encoded: the layer that is the input of the decoder (typically the encoded layer from the encoder)
-        :return: returns "input_code" wich is the input layer, "decoded" which is the last layer, and the model.
+        latent
         """
-        if type(encoded)==type((1,1)):        
-            s=encoded
-        else:
-            s=encoded.get_shape().as_list()[1:]
-        
-        input_code=Input(shape=s)
-        x = Dense(540)(input_code)
-        x = Reshape((720//48,576//48,3))(x)
+        input_decoder = Dense(540)(encoded)
+        x = Reshape((720//48,576//48,3))(input_decoder)
         x = Conv2D(1, (3, 3), padding='same')(x)
         x = LeakyReLU()(x)
         x = BatchNormalization(momentum=0.8)(x)
@@ -121,16 +108,11 @@ class VAE():
         x = LeakyReLU()(x)
         x = UpSampling2D((2, 2))(x)
         decoded = Conv2D(3, (3, 3), activation='tanh', padding='same')(x)
-        Decoder=Model(input_code,decoded,name='decoder')
-        return input_code,decoded,Decoder
+        Decoder=Model(input_img,decoded)
+    
+        return input_img,decoded,Decoder
 
 
-    def build_VAE(inp,out,opt='adam',l='mse'):
-        #AE=Sequential()
-        #AE.add(e)
-        #AE.add(d)
-        #AE.compile(optimizer=opt, loss=l)
-        return  Model(inp, out)
 
 
     def train(self, epochs=20, batch_size=32, save_interval=5):
