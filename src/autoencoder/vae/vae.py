@@ -11,6 +11,7 @@ from plotload import plot_1_to_255
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import norm
+from tqdm import tqdm
 
 
 from keras import backend as K
@@ -38,27 +39,26 @@ class VAE():
         self.latent_dim=(100,)
         #self.latent_dim=tf.placeholder(tf.float32, shape=self.latent_dim, name="latentdim")
         self.latent_dim_int=self.latent_dim[0] #only works on flat latent_dims (for now!!)
-        
+        self.model=None
     
-        (input_encoder,output_encoder,self.encoder,z_mean,z_log_var)=self.build_encoder(self.img_shape,self.latent_dim_int)
-        (input_decoder,output_decoder,self.decoder)=self.build_decoder(output_encoder)
-
+        #(input_encoder,output_encoder,self.encoder,z_mean,z_log_var)=self.build_encoder(self.img_shape,self.latent_dim_int)
+        #(input_decoder,output_decoder,self.decoder)=self.build_decoder(output_encoder)
+        (inp,out,self.model,z_mean,z_log_var)=self.build(self.img_shape, self.latent_dim_int)
         
-        vae=Model(input_encoder,output_decoder)
         
         # Compute VAE loss
-        xent_loss = self.img_rows*self.img_cols*self.channels * metrics.binary_crossentropy(input_encoder, output_decoder)
+        xent_loss = self.img_rows*self.img_cols*self.channels * metrics.binary_crossentropy(inp, out)
         kl_loss = - 0.5 * K.sum(1 + z_log_var - K.square(z_mean) - K.exp(z_log_var), axis=-1)
         vae_loss = K.mean(xent_loss + kl_loss)
         
-        vae.add_loss(vae_loss)
-        vae.compile(optimizer='rmsprop')
-        vae.summary()        
+        self.model.add_loss(vae_loss)
+        self.model.compile(optimizer='rmsprop')
+        self.model.summary()        
+
+        print()
 
 
-
-
-    def build_encoder(self,img_shape,latent_dim):
+    def build(self,img_shape,latent_dim):
         
         def sampling(args):
             #sampling used for lambda layer, #TODO find out what it does.
@@ -97,11 +97,6 @@ class VAE():
         x = UpSampling2D((3, 3))(x)
         x = Conv2D(8, (3, 3), padding='same')(x)
         x = LeakyReLU()(x)
-        #x = BatchNormalization(momentum=0.8)(x)
-        #x = UpSampling2D((2, 2))(x)
-        #x = Dropout(0.25)(x)
-        #x = Conv2D(8, (3, 3), padding='same')(x)
-        #x = LeakyReLU()(x)
         x = BatchNormalization(momentum=0.8)(x)
         x = UpSampling2D((2, 2))(x)
         x = Conv2D(3, (3, 3), padding='same')(x)
@@ -110,7 +105,7 @@ class VAE():
         decoded = Conv2D(3, (3, 3), activation='tanh', padding='same')(x)
         Decoder=Model(input_img,decoded)
     
-        return input_img,decoded,Decoder
+        return input_img,decoded,Decoder,z_mean,z_log_var
 
 
 
@@ -126,26 +121,10 @@ class VAE():
         """
         X_train=load_polyp_data(self.img_shape)
         loss=100
-        for epoch in tqdm(range(epochs)):
+        for epoch in range(epochs):
             idx = np.random.randint(0, X_train.shape[0], batch_size)
             imgs = X_train[idx] 
-
-            if (epoch+2) % save_interval == 0 and loss<0.05:
-                img=np.clip((np.random.normal(imgs,0.1)),-1,1)
-            else:
-                img=imgs
-            loss=self.autoencoder.train_on_batch(imgs, img)
-            if epoch % save_interval == 0:
-                idx2 = np.random.randint(0, X_train.shape[0], batch_size)
-                imgs2 = X_train[idx]
-                loss2=self.autoencoder.test_on_batch(imgs2, imgs2)
-                print(loss,loss2)
-                self.save_imgs(epoch,imgs[0:3,:,:,:]) 
-                self.decoder.save_weights(f"decoder_weights_{epoch}.h5")
-                self.encoder.save_weights(f"encoder_weights_{epoch}.h5")
-                self.autoencoder.save_weights(f"ae_weights_{epoch}.h5")
-        # encode and decode some digits
-        # note that we take them from the *test* set
+            self.model.fit(x=imgs,y=imgs)
         print("saving")
         self.decoder.save("new_decoder.h5")
         self.encoder.save("new_encoder.h5")
