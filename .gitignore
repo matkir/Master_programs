@@ -8,6 +8,7 @@ __pycache__/
 
 #npy
 *.npy
+DCGAN*.png
 #not adding the dataset
 kvasir-dataset-v2/
 
