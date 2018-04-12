@@ -2,7 +2,6 @@ import sys,os
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
-from tqdm import tqdm
 def load_polyp_data(img_shape,data_type=None):
     """
     Loads the polyp data
@@ -16,11 +15,11 @@ def load_polyp_data(img_shape,data_type=None):
     data=np.ndarray(shape=(len(os.listdir(folder)), img_shape[0], img_shape[1], img_shape[2]),dtype=np.int32)
     print(f"loading {len(os.listdir(folder))} images")
     i=0
-    for img in tqdm(os.listdir(folder)):
+    for img in os.listdir(folder):
         path=os.path.join(folder,img)
         save=cv2.cvtColor(cv2.imread(path), cv2.COLOR_BGR2RGB)
         save=cv2.resize(save,(img_shape[1],img_shape[0]))
-        data[i]=save#(np.roll(np.array(save),1,axis=-1))
+        data[i]=save
         i+=1
     data = (data.astype(np.float32) - 127.5) / 127.5
     np.save("train_data.npy", data)

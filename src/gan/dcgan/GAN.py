@@ -12,7 +12,7 @@ os.environ['CUDA_VISIBLE_DEVICES'] = ''
 
 class GAN(): 
     def __init__(self):
-        self.img_rows = 720//4#240 # Original is ~720 
+        self.img_rows = 720//4#240 # Original is ~720
         self.img_cols = 576//4#192 # Original is ~576
         self.channels = 3   # RGB        
         self.img_shape=(self.img_rows,self.img_cols,self.channels)
@@ -207,10 +207,7 @@ if __name__ == '__main__':
         
     if "-img" in sys.argv:
         data=np.load("train_data.npy")
-        #data = (data.astype(np.float32) - 127.5) / 127.5
         a = 0.5 * data + 0.5
-        
-       
         plt.imshow(a[np.random.randint(1),:,:,:])
         plt.show()
         sys.exit()
