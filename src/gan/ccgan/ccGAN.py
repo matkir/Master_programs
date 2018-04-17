@@ -18,10 +18,11 @@ import numpy as np
 
 class ContextEncoder():
     def __init__(self):
-        self.img_rows = 720//2//2 
-        self.img_cols = 576//2//2
-        self.mask_height = 50 # size of green
-        self.mask_width = 50 # ---||----
+        self.scale=1
+        self.img_rows = int(720*self.scale)
+        self.img_cols = int(576*self.scale)
+        self.mask_height = int(144*self.scale) # aprox size of green
+        self.mask_width = int(180*self.scale) # -------||----------
         self.channels = 3
         self.num_classes = 2
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
@@ -121,11 +122,31 @@ class ContextEncoder():
         return Model(img, validity)
 
     def mask_randomly(self, imgs):
-        y1 = np.random.randint(0, self.img_rows - self.mask_height, imgs.shape[0])
+        y1 = np.random.randint(0, self.img_cols - self.mask_height, imgs.shape[0])
         y2 = y1 + self.mask_height
         x1 = np.random.randint(0, self.img_rows - self.mask_width, imgs.shape[0])
         x2 = x1 + self.mask_width
+        
+        
+        masked_imgs = np.empty_like(imgs)
+        missing_parts = np.empty((imgs.shape[0], self.mask_height, self.mask_width, self.channels))
+        for i, img in enumerate(imgs):
+            masked_img = img.copy()
+            _y1, _y2, _x1, _x2 = y1[i], y2[i], x1[i], x2[i]
+            a = masked_img[_y1:_y2, _x1:_x2, :].copy()
+            missing_parts[i] = a
+            masked_img[_y1:_y2, _x1:_x2, :] = 0
+            masked_imgs[i] = masked_img
 
+        return masked_imgs, missing_parts, (y1, y2, x1, x2)
+        #return self.mask_area(y1, y2, x1, x2, imgs)
+    def mask_select(self,imgs):
+        from selector import selector
+        x1,y1,x2,y2 = selector.get_coord(adr='2.jpg',scale=1)
+        return self.mask_area(y1, y2, x1, x2, imgs)
+    
+    
+    def mask_area(self,y1,y2,x1,x2,imgs):
         masked_imgs = np.empty_like(imgs)
         missing_parts = np.empty((imgs.shape[0], self.mask_height, self.mask_width, self.channels))
         for i, img in enumerate(imgs):
@@ -172,6 +193,7 @@ class ContextEncoder():
             imgs = X_train[idx]
 
             masked_imgs, missing, _ = self.mask_randomly(imgs)
+            masked_imgs, missing, _ = self.mask_select(imgs)
             
             # Generate a half batch of new images
             gen_missing = self.generator.predict(masked_imgs)
@@ -246,7 +268,16 @@ class ContextEncoder():
 
         save(self.generator, "context_encoder_generator")
         save(self.discriminator, "context_encoder_discriminator")
-
+    
+    def predict():
+        if not (self.generator is not None and self.discriminator is not None):
+            model_name=context_encoder_generator
+            model_path = "context_encoder/saved_model/%s.json" % model_name
+            weights_path = "context_encoder/saved_model/%s_weights.hdf5" % model_name
+            self.generator=load(model_path)
+            self.generator=load_weghts(model_path)
+            
+            
 
 if __name__ == '__main__':
     context_encoder = ContextEncoder()
