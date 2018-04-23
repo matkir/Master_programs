@@ -1,6 +1,5 @@
 from __future__ import print_function, division
 
-from keras.datasets import cifar10
 from keras.layers import Input, Dense, Reshape, Flatten, Dropout, multiply, GaussianNoise
 from keras.layers import BatchNormalization, Activation, Embedding, ZeroPadding2D
 from keras.layers import MaxPooling2D
@@ -12,6 +11,7 @@ from keras import losses
 from keras.utils import to_categorical
 import keras.backend as K
 
+from selector import selector
 import matplotlib.pyplot as plt
 
 import numpy as np
@@ -29,7 +29,7 @@ class ContextEncoder():
         self.missing_shape = (self.mask_height, self.mask_width, self.channels)
 
         optimizer = Adam(0.0002, 0.5)
-
+        
         # Build and compile the discriminator
         self.discriminator = self.build_discriminator()
         self.discriminator.compile(loss='binary_crossentropy', 
@@ -59,7 +59,7 @@ class ContextEncoder():
         self.combined.compile(loss=['mse', 'binary_crossentropy'],
             loss_weights=[0.999, 0.001],
             optimizer=optimizer)
-
+       
     def build_generator(self):
 
         
@@ -126,58 +126,39 @@ class ContextEncoder():
         y2 = y1 + self.mask_height
         x1 = np.random.randint(0, self.img_rows - self.mask_width, imgs.shape[0])
         x2 = x1 + self.mask_width
-        
-        
-        masked_imgs = np.empty_like(imgs)
-        missing_parts = np.empty((imgs.shape[0], self.mask_height, self.mask_width, self.channels))
-        for i, img in enumerate(imgs):
-            masked_img = img.copy()
-            _y1, _y2, _x1, _x2 = y1[i], y2[i], x1[i], x2[i]
-            a = masked_img[_y1:_y2, _x1:_x2, :].copy()
-            missing_parts[i] = a
-            masked_img[_y1:_y2, _x1:_x2, :] = 0
-            masked_imgs[i] = masked_img
-
-        return masked_imgs, missing_parts, (y1, y2, x1, x2)
-        #return self.mask_area(y1, y2, x1, x2, imgs)
-    def mask_select(self,imgs):
-        from selector import selector
-        x1,y1,x2,y2 = selector.get_coord(adr='2.jpg',scale=1)
         return self.mask_area(y1, y2, x1, x2, imgs)
-    
-    
+        
+    def mask_area2(self,y1,y2,x1,x2,imgs):
+        masked_imgs = np.empty_like(imgs)
+        missing_parts = np.ndarray(shape=(x2[0]-x1[0],y2[0]-y1[0]))
+        masked_img = img.copy()
+        _y1, _y2, _x1, _x2 = y1[i], y2[i], x1[i], x2[i]
+        missing_parts =masked_img[_x1:_x2, _y1:_y2, :].copy()
+        masked_img[_x1:_x2, _y1:_y2, :] = 0
+        masked_imgs[i] = masked_img
+        return masked_imgs, missing_parts, (y1, y2, x1, x2)
+       
     def mask_area(self,y1,y2,x1,x2,imgs):
         masked_imgs = np.empty_like(imgs)
-        missing_parts = np.empty((imgs.shape[0], self.mask_height, self.mask_width, self.channels))
+        missing_parts = np.empty((imgs.shape[0], self.mask_width, self.mask_height, self.channels))
         for i, img in enumerate(imgs):
             masked_img = img.copy()
             _y1, _y2, _x1, _x2 = y1[i], y2[i], x1[i], x2[i]
-            missing_parts[i] = masked_img[_y1:_y2, _x1:_x2, :].copy()
-            masked_img[_y1:_y2, _x1:_x2, :] = 0
+            a = masked_img[_x1:_x2, _y1:_y2, :].copy()
+            missing_parts[i] = a
+            masked_img[_x1:_x2, _y1:_y2, :] = 0
             masked_imgs[i] = masked_img
 
         return masked_imgs, missing_parts, (y1, y2, x1, x2)
-
-
+    def mask_select(self,imgs):
+        x1,y1,x2,y2 = selector.get_coord(adr='2.jpg',scale=1)
+        return self.mask_area2([y1], [y2], [x1], [x2], imgs)
+    
+    
 
     def train(self, epochs, batch_size=128, save_interval=50):
         from plotload import load_polyp_data
         X_train=load_polyp_data(self.img_shape)
-        # Load the dataset
-        #(X_train, y_train), (X_test, y_test) = cifar10.load_data()
-
-        #X_train = np.vstack((X_train, X_test))
-        #y_train = np.vstack((y_train, y_test))
-
-        # Extract dogs and cats
-        #X_cats = X_train[(y_train == 3).flatten()]
-        #X_dogs = X_train[(y_train == 5).flatten()]
-        #X_train = np.vstack((X_cats, X_dogs))
-
-        # Rescale -1 to 1
-        #X_train = X_train / 255
-        #X_train = 2 * X_train - 1
-        #y_train = y_train.reshape(-1, 1)
 
         half_batch = int(batch_size / 2)
 
