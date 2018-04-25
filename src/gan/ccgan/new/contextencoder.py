@@ -18,10 +18,10 @@ import numpy as np
 
 class ContextEncoder():
     def __init__(self):
-        self.img_rows = 32
-        self.img_cols = 32
-        self.mask_height = 8
-        self.mask_width = 8
+        self.img_rows = 64#32
+        self.img_cols = 64#32
+        self.mask_height = 16#8
+        self.mask_width = 16#8
         self.channels = 3
         self.num_classes = 2
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
@@ -136,7 +136,16 @@ class ContextEncoder():
             masked_imgs[i] = masked_img
 
         return masked_imgs, missing_parts, (y1, y2, x1, x2)
-
+    def mask_select(self,imgs,img_adr):
+        import selector
+        x1,y1,x2,y2 = selector.get_coord(adr=img_adr,scale=1)
+        masked_img = np.empty_like(imgs)
+        missing_parts = np.ndarray(shape=(x2-x1,y2-y1))
+        masked_img = img.copy()
+        missing_parts =masked_img[x1:x2, y1:y2,:]
+        masked_img[x1:x2, y1:y2,:] = 0
+        return masked_imgs, missing_parts, (y1, y2, x1, x2)
+        
 
 
     def train(self, epochs, batch_size=128, sample_interval=50):
@@ -158,7 +167,9 @@ class ContextEncoder():
         y_train = y_train.reshape(-1, 1)
 
         half_batch = int(batch_size / 2)
-
+        import plotload
+        X_train=plotload.load_polyp_data(self.img_shape)
+        #self.mask_select(X_train[0], '2.jpg')
         for epoch in range(epochs):
 
 
@@ -208,7 +219,7 @@ class ContextEncoder():
                 idx = np.random.randint(0, X_train.shape[0], 6)
                 imgs = X_train[idx]
                 self.sample_images(epoch, imgs)
-
+                self.save_model()   
     def sample_images(self, epoch, imgs):
         r, c = 3, 6
 
