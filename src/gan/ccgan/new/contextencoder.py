@@ -18,10 +18,10 @@ import numpy as np
 
 class ContextEncoder():
     def __init__(self):
-        self.img_rows = 64#32
-        self.img_cols = 64#32
-        self.mask_height = 16#8
-        self.mask_width = 16#8
+        self.img_rows = 2*64#32
+        self.img_cols = 2*64#32
+        self.mask_height = 2*16#8
+        self.mask_width = 2*16#8
         self.channels = 3
         self.num_classes = 2
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
@@ -149,26 +149,9 @@ class ContextEncoder():
 
 
     def train(self, epochs, batch_size=128, sample_interval=50):
-
-        # Load the dataset
-        (X_train, y_train), (X_test, y_test) = cifar10.load_data()
-
-        X_train = np.vstack((X_train, X_test))
-        y_train = np.vstack((y_train, y_test))
-
-        # Extract dogs and cats
-        X_cats = X_train[(y_train == 3).flatten()]
-        X_dogs = X_train[(y_train == 5).flatten()]
-        X_train = np.vstack((X_cats, X_dogs))
-
-        # Rescale -1 to 1
-        X_train = X_train / 255
-        X_train = 2 * X_train - 1
-        y_train = y_train.reshape(-1, 1)
-
         half_batch = int(batch_size / 2)
         import plotload
-        X_train=plotload.load_polyp_data(self.img_shape)
+        X_train=plotload.load_polyp_data(self.img_shape,rot=True)
         #self.mask_select(X_train[0], '2.jpg')
         for epoch in range(epochs):
 
@@ -197,18 +180,18 @@ class ContextEncoder():
             # ---------------------
             #  Train Generator
             # ---------------------
-
-            # Select a random half batch of images
-            idx = np.random.randint(0, X_train.shape[0], batch_size)
-            imgs = X_train[idx]
-
-            masked_imgs, missing_parts, _ = self.mask_randomly(imgs)
-
-            # Generator wants the discriminator to label the generated images as valid
-            valid = np.ones((batch_size, 1))
-
-            # Train the generator
-            g_loss = self.combined.train_on_batch(masked_imgs, [missing_parts, valid])
+            for _ in range(2):
+                # Select a random half batch of images
+                idx = np.random.randint(0, X_train.shape[0], batch_size)
+                imgs = X_train[idx]
+        
+                masked_imgs, missing_parts, _ = self.mask_randomly(imgs)
+        
+                # Generator wants the discriminator to label the generated images as valid
+                valid = np.ones((batch_size, 1))
+        
+                # Train the generator
+                g_loss = self.combined.train_on_batch(masked_imgs, [missing_parts, valid])
 
             # Plot the progress
             print ("%d [D loss: %f, acc: %.2f%%] [G loss: %f, mse: %f]" % (epoch, d_loss[0], 100*d_loss[1], g_loss[0], g_loss[1]))
@@ -219,7 +202,8 @@ class ContextEncoder():
                 idx = np.random.randint(0, X_train.shape[0], 6)
                 imgs = X_train[idx]
                 self.sample_images(epoch, imgs)
-                self.save_model()   
+                if epoch % (sample_interval*10) == 0:
+                    self.save_model()   
     def sample_images(self, epoch, imgs):
         r, c = 3, 6
 
