@@ -33,8 +33,12 @@ if len(sys.argv)!=2:
     none_folder ='../../../kvasir-dataset-v2/none' 
     green_folder ='../../../kvasir-dataset-v2/green' 
     data()
+    folder ='../../../kvasir-dataset-v2/ulcerative-colitis' 
+    data()
 else:
     folder ='../kvasir-dataset-v2/blanding' 
     none_folder ='../kvasir-dataset-v2/none' 
     green_folder ='../kvasir-dataset-v2/green' 
+    data()
+    folder ='../kvasir-dataset-v2/ulcerative-colitis' 
     data()
