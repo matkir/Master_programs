@@ -12,6 +12,9 @@ from keras import losses
 from keras.utils import to_categorical
 import keras.backend as K
 
+
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 import numpy as np
