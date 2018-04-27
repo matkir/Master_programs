@@ -35,7 +35,7 @@ def load_polyp_data(img_shape,data_type=None,rot=False):
         else:    
             data[i]=save
             i+=1
-    data=np.random.permutation(data)
+    #data=np.random.permutation(data)
     data = (data.astype(np.float32) - 127.5) / 127.5
     np.save("train_data.npy", data)
     return data
