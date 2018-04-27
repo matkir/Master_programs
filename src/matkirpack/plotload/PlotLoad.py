@@ -2,6 +2,7 @@ import sys,os
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
+import tqdm
 def load_polyp_data(img_shape,data_type=None,rot=False):
     """
     Loads the polyp data
@@ -22,7 +23,7 @@ def load_polyp_data(img_shape,data_type=None,rot=False):
         print(f"loading {len(os.listdir(folder))} images")
 
     i=0
-    for img in os.listdir(folder):
+    for img in tqdm(os.listdir(folder)):
         path=os.path.join(folder,img)
         save=cv2.cvtColor(cv2.imread(path), cv2.COLOR_BGR2RGB)
         save=cv2.resize(save,(img_shape[1],img_shape[0]))
