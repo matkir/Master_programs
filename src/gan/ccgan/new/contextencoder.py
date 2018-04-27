@@ -107,6 +107,7 @@ class ContextEncoder():
        
         model.add(BatchNormalization(momentum=0.8))
         model.add(UpSampling2D())
+        model.add(Dropout(0.5))
         model.add(Conv2D(64, kernel_size=3, padding="same"))
         model.add(Activation('relu'))
         model.add(BatchNormalization(momentum=0.8))
