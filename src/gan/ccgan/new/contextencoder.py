@@ -184,7 +184,7 @@ class ContextEncoder():
     def train(self, epochs, batch_size=128, sample_interval=50):
         half_batch = int(batch_size / 2)
         import plotload
-        X_train=plotload.load_polyp_data(self.img_shape,rot=True)
+        X_train=plotload.load_polyp_data(self.img_shape)
         #self.mask_select(X_train[0], '2.jpg')
         for epoch in range(epochs):
 
@@ -213,7 +213,7 @@ class ContextEncoder():
             # ---------------------
             #  Train Generator
             # ---------------------
-            for _ in range(1):
+            for _ in range(5):
                 # Select a random half batch of images
                 idx = np.random.randint(0, X_train.shape[0], batch_size)
                 imgs = X_train[idx]
