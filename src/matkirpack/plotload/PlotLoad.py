@@ -2,6 +2,7 @@ import sys,os
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
+import tqdm
 def load_polyp_data(img_shape,data_type=None,rot=False):
     """
     Loads the polyp data
@@ -22,7 +23,7 @@ def load_polyp_data(img_shape,data_type=None,rot=False):
         print(f"loading {len(os.listdir(folder))} images")
 
     i=0
-    for img in os.listdir(folder):
+    for img in tqdm(os.listdir(folder)):
         path=os.path.join(folder,img)
         save=cv2.cvtColor(cv2.imread(path), cv2.COLOR_BGR2RGB)
         save=cv2.resize(save,(img_shape[1],img_shape[0]))
@@ -30,13 +31,13 @@ def load_polyp_data(img_shape,data_type=None,rot=False):
             for r in [0,90,180,270]:
                 M = cv2.getRotationMatrix2D((img_shape[1]/2,img_shape[0]/2),r,1)
                 dst = cv2.warpAffine(save,M,(img_shape[1],img_shape[0]))
-                dst = (dst.astype(np.float32) - 127.5) / 127.5
                 data[i]=dst
                 i+=1
         else:    
             data[i]=save
             i+=1
     #data=np.random.permutation(data)
+    data = (data.astype(np.float32) - 127.5) / 127.5
     np.save("train_data.npy", data)
     return data
 
