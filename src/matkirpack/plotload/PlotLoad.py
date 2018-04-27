@@ -2,7 +2,7 @@ import sys,os
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
-import tqdm
+from tqdm import tqdm
 def load_polyp_data(img_shape,data_type=None,rot=False):
     """
     Loads the polyp data
