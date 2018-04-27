@@ -30,13 +30,13 @@ def load_polyp_data(img_shape,data_type=None,rot=False):
             for r in [0,90,180,270]:
                 M = cv2.getRotationMatrix2D((img_shape[1]/2,img_shape[0]/2),r,1)
                 dst = cv2.warpAffine(save,M,(img_shape[1],img_shape[0]))
-                dst = (dst.astype(np.float32) - 127.5) / 127.5
                 data[i]=dst
                 i+=1
         else:    
             data[i]=save
             i+=1
     #data=np.random.permutation(data)
+    data = (data.astype(np.float32) - 127.5) / 127.5
     np.save("train_data.npy", data)
     return data
 
