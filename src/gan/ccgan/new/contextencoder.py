@@ -217,7 +217,7 @@ class ContextEncoder():
             # ---------------------
             #  Train Generator
             # ---------------------
-            for _ in range(2):
+            for _ in range(1):
                 # Select a random half batch of images
                 idx = np.random.randint(0, X_train.shape[0], batch_size)
                 imgs = X_train[idx]
@@ -281,4 +281,4 @@ class ContextEncoder():
 
 if __name__ == '__main__':
     context_encoder = ContextEncoder()
-    context_encoder.train(epochs=90000, batch_size=64, sample_interval=100)
+    context_encoder.train(epochs=90000, batch_size=64, sample_interval=1000)
