@@ -41,6 +41,43 @@ def load_polyp_data(img_shape,data_type=None,rot=False):
     np.save("train_data.npy", data)
     return data
 
+
+def load_polyp_batch(img_shape,batch_size,data_type=None,rot=False):
+    """
+    Loads the polyp data, in a for of random images from a batch
+    """
+    if data_type==None:
+        folder ='../../../../../kvasir-dataset-v2/none' #TODO MAKE STATIC
+    else:
+        folder ='../../../../../kvasir-dataset-v2/blanding' #TODO MAKE STATIC
+    
+    data=np.ndarray(shape=(batch_size, img_shape[0], img_shape[1], img_shape[2]),dtype=np.int32)
+
+    i=0
+    imgs=np.random.choice(os.listdir(folder),batch_size,replace=True)
+    for img in imgs:
+        path=os.path.join(folder,img)
+        save=cv2.cvtColor(cv2.imread(path), cv2.COLOR_BGR2RGB)
+        save=cv2.resize(save,(img_shape[1],img_shape[0]))
+        
+        r=np.random.choice([0,90,180,270],p=[0.7,0.1,0.1,0.1])
+        if r !=0:
+            M = cv2.getRotationMatrix2D((img_shape[1]/2,img_shape[0]/2),r,1)
+            dst = cv2.warpAffine(save,M,(img_shape[1],img_shape[0]))
+            data[i]=dst
+            i+=1
+        else:    
+            data[i]=save
+            i+=1
+
+    data = (data.astype(np.float32) - 127.5) / 127.5
+    np.save("train_data.npy", data)
+    return data
+
+
+
+
+
 def plot_1_to_255(enc_img,dec_img,ae_img,real_img,epoch):
     """
     takes images as -1,1 and converts them to 0,1 format.
