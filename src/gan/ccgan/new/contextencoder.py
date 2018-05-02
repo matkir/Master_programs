@@ -21,10 +21,10 @@ import numpy as np
 
 class ContextEncoder():
     def __init__(self):
-        self.img_rows = 8*64#32
-        self.img_cols = 8*64#32
-        self.mask_height = 8*16#8
-        self.mask_width = 8*16#8
+        self.img_rows = 8*64//2#32
+        self.img_cols = 8*64//2#32
+        self.mask_height = 8*16//2#8
+        self.mask_width = 8*16//2#8
         self.channels = 3
         self.num_classes = 2
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
@@ -188,8 +188,9 @@ class ContextEncoder():
     def train(self, epochs, batch_size=128, sample_interval=50):
         half_batch = int(batch_size / 2)
         import plotload
+        """
         X_train=plotload.load_polyp_data(self.img_shape)
-        #self.mask_select(X_train[0], '2.jpg')
+        """
         for epoch in range(epochs):
 
 
@@ -198,9 +199,10 @@ class ContextEncoder():
             # ---------------------
 
             # Select a random half batch of images
+            X_train=plotload.load_polyp_batch(self.img_shape, batch_size)
             idx = np.random.randint(0, X_train.shape[0], half_batch)
             imgs = X_train[idx]
-
+            
             masked_imgs, missing, _ = self.mask_randomly(imgs)
 
             # Generate a half batch of new images
