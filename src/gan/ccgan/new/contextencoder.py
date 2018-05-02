@@ -21,10 +21,10 @@ import numpy as np
 
 class ContextEncoder():
     def __init__(self):
-        self.img_rows = 8*64//2#32
-        self.img_cols = 8*64//2#32
-        self.mask_height = 8*16//2#8
-        self.mask_width = 8*16//2#8
+        self.img_rows = 720#8*64//2#32
+        self.img_cols = 576#8*64//2#32
+        self.mask_height = self.img_cols//4#8*16//2#8
+        self.mask_width = self.img_rows//4 #8*16//2#8
         self.channels = 3
         self.num_classes = 2
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
@@ -199,7 +199,8 @@ class ContextEncoder():
             # ---------------------
 
             # Select a random half batch of images
-            X_train=plotload.load_polyp_batch(self.img_shape, batch_size)
+            if epoch%100==0:
+                X_train=plotload.load_polyp_batch(self.img_shape, batch_size*5)
             idx = np.random.randint(0, X_train.shape[0], half_batch)
             imgs = X_train[idx]
             
