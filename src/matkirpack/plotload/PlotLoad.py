@@ -84,6 +84,25 @@ def load_polyp_batch(img_shape,batch_size,data_type=None,rot=False):
     np.save("train_data.npy", data)
     return data
 
+def load_one_img(img_shape,dest=None):
+    """
+    Loads a spessific img, or random if non declared
+    """
+    import os
+    if dest==None:
+        folder=os.path.expanduser("~")
+        folder=folder+"/Documents/kvasir-dataset-v2/green"
+        img=np.random.choice(os.listdir(folder),1)
+    else:
+        img=dest
+        
+    
+    data=np.ndarray(shape=(1, img_shape[0], img_shape[1], img_shape[2]),dtype=np.int32)
+    save=cv2.cvtColor(cv2.imread(img), cv2.COLOR_BGR2RGB)
+    save=cv2.resize(save,(img_shape[1],img_shape[0]))
+    data[i]=save
+    data = (data.astype(np.float32) - 127.5) / 127.5
+    return data
 
 
 
