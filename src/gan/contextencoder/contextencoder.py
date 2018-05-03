@@ -89,17 +89,17 @@ class ContextEncoder():
         model.add(LeakyReLU(alpha=0.2))
         model.add(BatchNormalization(momentum=0.8))
 
-        model.add(Conv2D(512, kernel_size=1, strides=3, padding="same"))
+        model.add(Conv2D(512, kernel_size=1, strides=1, padding="same"))
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.5))
 
         # Decoder
-        model.add(UpSampling2D(size=(3,3)))
-        model.add(Conv2D(128, kernel_size=3))
+        #model.add(UpSampling2D(size=(3,3)))
+        model.add(Conv2D(256, kernel_size=3))
         model.add(Activation('relu'))
         
         model.add(UpSampling2D(size=(3,3)))
-        model.add(Conv2D(128, kernel_size=3))
+        model.add(Conv2D(256, kernel_size=3))
         model.add(Activation('relu'))
         
         model.add(UpSampling2D())
@@ -269,8 +269,8 @@ class ContextEncoder():
             gen_missing = self.generator.predict(masked_imgs)
 
             if soft:
-                valid = 0.5*np.random.random_sample((half_batch,1))+0.8
-                fake = 0.3*np.random.random_sample((half_batch,1))
+                valid = 0.2*np.random.random_sample((half_batch,1))+0.9
+                fake = 0.1*np.random.random_sample((half_batch,1))
             else:
                 valid = np.ones((half_batch, 1))
                 fake = np.zeros((half_batch, 1))
@@ -305,8 +305,8 @@ class ContextEncoder():
                 idx = np.random.randint(0, X_train.shape[0], 6)
                 imgs = X_train[idx]
                 self.sample_images(epoch, imgs)
-                if epoch % (sample_interval*10) == 0:
-                    self.save_model()   
+            if epoch % (sample_interval*5) == 0:
+                self.save_model()   
     def sample_images(self, epoch, imgs):
         r, c = 3, 6
 
@@ -349,5 +349,5 @@ class ContextEncoder():
 
 if __name__ == '__main__':
     context_encoder = ContextEncoder()
-    context_encoder.train(epochs=90000, batch_size=32, sample_interval=500)
+    context_encoder.train(epochs=90000, batch_size=32, sample_interval=50)
 
