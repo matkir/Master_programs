@@ -349,4 +349,5 @@ class ContextEncoder():
 
 if __name__ == '__main__':
     context_encoder = ContextEncoder()
-    context_encoder.train(epochs=90000, batch_size=2, sample_interval=5)
+    context_encoder.train(epochs=90000, batch_size=32, sample_interval=500)
+
