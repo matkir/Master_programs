@@ -9,10 +9,15 @@ def load_polyp_data(img_shape,data_type=None,rot=False):
     """
     if '-l' in sys.argv:
         return np.load("train_data.npy")
+    import os
     if data_type==None:
-        folder ='../../../../../kvasir-dataset-v2/none' #TODO MAKE STATIC
+        folder=os.path.expanduser("~")
+        folder=folder+"/Documents/kvasir-dataset-v2/none"
+        #folder ='../../../../../kvasir-dataset-v2/none' #TODO MAKE STATIC
     else:
-        folder ='../../../../../kvasir-dataset-v2/blanding' #TODO MAKE STATIC
+        folder=os.path.expanduser("~")
+        folder=folder+"/Documents/kvasir-dataset-v2/blanding"
+        #folder ='../../../../../kvasir-dataset-v2/blanding' #TODO MAKE STATIC
     
     if rot:
         #Rot takes 4 times as many pics
@@ -46,10 +51,15 @@ def load_polyp_batch(img_shape,batch_size,data_type=None,rot=False):
     """
     Loads the polyp data, in a for of random images from a batch
     """
+    import os
     if data_type==None:
-        folder ='../../../../../kvasir-dataset-v2/none' #TODO MAKE STATIC
+        folder=os.path.expanduser("~")
+        folder=folder+"/Documents/kvasir-dataset-v2/none"
+        #folder ='../../../../../kvasir-dataset-v2/none' #TODO MAKE STATIC
     else:
-        folder ='../../../../../kvasir-dataset-v2/blanding' #TODO MAKE STATIC
+        folder=os.path.expanduser("~")
+        folder=folder+"/Documents/kvasir-dataset-v2/blanding"
+        #folder ='../../../../../kvasir-dataset-v2/blanding' #TODO MAKE STATIC
     
     data=np.ndarray(shape=(batch_size, img_shape[0], img_shape[1], img_shape[2]),dtype=np.int32)
 

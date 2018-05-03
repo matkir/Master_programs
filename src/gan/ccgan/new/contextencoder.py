@@ -28,7 +28,7 @@ class ContextEncoder():
         self.channels = 3
         self.num_classes = 2
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
-        self.missing_shape = (self.mask_height, self.mask_width, self.channels)
+        self.missing_shape = (self.mask_width, self.mask_height, self.channels)
 
         optimizer = Adam(0.0002, 0.5)
 
@@ -85,20 +85,20 @@ class ContextEncoder():
         model.add(LeakyReLU(alpha=0.2))
         model.add(BatchNormalization(momentum=0.8))
         
-        model.add(Conv2D(128, kernel_size=3, strides=2, padding="same"))
+        model.add(Conv2D(128, kernel_size=3, strides=3, padding="same"))
         model.add(LeakyReLU(alpha=0.2))
         model.add(BatchNormalization(momentum=0.8))
 
-        model.add(Conv2D(512, kernel_size=1, strides=2, padding="same"))
+        model.add(Conv2D(512, kernel_size=1, strides=3, padding="same"))
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dropout(0.5))
 
         # Decoder
-        model.add(UpSampling2D())
+        model.add(UpSampling2D(size=(3,3)))
         model.add(Conv2D(128, kernel_size=3, padding="same"))
         model.add(Activation('relu'))
         
-        model.add(UpSampling2D())
+        model.add(UpSampling2D(size=(3,3)))
         model.add(Conv2D(128, kernel_size=3, padding="same"))
         model.add(Activation('relu'))
         
@@ -164,12 +164,12 @@ class ContextEncoder():
         x2 = x1 + self.mask_width
 	
         masked_imgs = np.empty_like(imgs)
-        missing_parts = np.empty((imgs.shape[0], self.mask_height, self.mask_width, self.channels))
+        missing_parts = np.empty((imgs.shape[0],self.mask_width,self.mask_height, self.channels))
         for i, img in enumerate(imgs):
             masked_img = img.copy()
             _y1, _y2, _x1, _x2 = y1[i], y2[i], x1[i], x2[i]
-            missing_parts[i] = masked_img[_y1:_y2, _x1:_x2, :].copy()
-            masked_img[_y1:_y2, _x1:_x2, :] = 0
+            missing_parts[i] = masked_img[_x1:_x2, _y1:_y2, :].copy()
+            masked_img[_x1:_x2, _y1:_y2, :] = 0
             masked_imgs[i] = masked_img
 
         return masked_imgs, missing_parts, (y1, y2, x1, x2)
