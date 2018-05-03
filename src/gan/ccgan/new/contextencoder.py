@@ -21,8 +21,8 @@ import numpy as np
 
 class ContextEncoder():
     def __init__(self):
-        self.img_rows = 720#8*64//2#32
-        self.img_cols = 576#8*64//2#32
+        self.img_rows = 576#8*64//2#32
+        self.img_cols = 720#8*64//2#32
         self.mask_height = self.img_cols//4#8*16//2#8
         self.mask_width = self.img_rows//4 #8*16//2#8
         self.channels = 3
@@ -158,11 +158,11 @@ class ContextEncoder():
         return Model(img, validity)
 
     def mask_randomly(self, imgs):
-        y1 = np.random.randint(0, self.img_rows - self.mask_height, imgs.shape[0])
+        y1 = np.random.randint(0, self.img_cols - self.mask_height, imgs.shape[0])
         y2 = y1 + self.mask_height
         x1 = np.random.randint(0, self.img_rows - self.mask_width, imgs.shape[0])
         x2 = x1 + self.mask_width
-
+	
         masked_imgs = np.empty_like(imgs)
         missing_parts = np.empty((imgs.shape[0], self.mask_height, self.mask_width, self.channels))
         for i, img in enumerate(imgs):
@@ -209,8 +209,12 @@ class ContextEncoder():
             # Generate a half batch of new images
             gen_missing = self.generator.predict(masked_imgs)
 
-            valid = np.ones((half_batch, 1))
-            fake = np.zeros((half_batch, 1))
+            if soft:
+                valid = 0.5*np.random.random_sample((half_batch,1))+0.8
+                fake = 0.3*np.random.random_sample((half_batch,1))
+            else:
+                valid = np.ones((half_batch, 1))
+                fake = np.zeros((half_batch, 1))
 
             # Train the discriminator
             d_loss_real = self.discriminator.train_on_batch(missing, valid)
