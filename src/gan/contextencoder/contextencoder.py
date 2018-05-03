@@ -23,8 +23,8 @@ class ContextEncoder():
     def __init__(self):
         self.img_rows = 576#8*64//2#32
         self.img_cols = 720#8*64//2#32
-        self.mask_height = 208#300 #self.img_cols//4#8*16//2#8
-        self.mask_width = 280#350 #self.img_rows//4 #8*16//2#8
+        self.mask_width = 208#350 #self.img_rows//4 #8*16//2#8
+        self.mask_height = 280#300 #self.img_cols//4#8*16//2#8
         self.channels = 3
         self.num_classes = 2
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
@@ -240,16 +240,6 @@ class ContextEncoder():
             masked_imgs[i] = masked_img
 
         return masked_imgs, missing_parts, (y1, y2, x1, x2)
-    def mask_select(self,imgs,img_adr):
-        import selector
-        x1,y1,x2,y2 = selector.get_coord(adr=img_adr,scale=1)
-        masked_img = np.empty_like(imgs)
-        missing_parts = np.ndarray(shape=(x2-x1,y2-y1))
-        masked_img = img.copy()
-        missing_parts =masked_img[x1:x2, y1:y2,:]
-        masked_img[x1:x2, y1:y2,:] = 0
-        return masked_imgs, missing_parts, (y1, y2, x1, x2)
-        
 
 
     def train(self, epochs, batch_size=128, sample_interval=50):
@@ -334,7 +324,6 @@ class ContextEncoder():
             axs[1,i].imshow(masked_imgs[i, :,:])
             axs[1,i].axis('off')
             filled_in = imgs[i].copy()
-            print(filled_in.shape)
             filled_in[x1[i]:x2[i], y1[i]:y2[i], :] = gen_missing[i]
             axs[2,i].imshow(filled_in)
             axs[2,i].axis('off')
@@ -360,4 +349,4 @@ class ContextEncoder():
 
 if __name__ == '__main__':
     context_encoder = ContextEncoder()
-    context_encoder.train(epochs=90000, batch_size=32, sample_interval=1000)
+    context_encoder.train(epochs=90000, batch_size=2, sample_interval=5)

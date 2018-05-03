@@ -100,7 +100,7 @@ def load_one_img(img_shape,dest=None):
     save=cv2.cvtColor(cv2.imread(img), cv2.COLOR_BGR2RGB)
     save=cv2.resize(save,(img_shape[1],img_shape[0]))
     data = (save.astype(np.float32) - 127.5) / 127.5
-    return data
+    return data,img
 
 
 
@@ -151,4 +151,3 @@ def plot_1_to_255(enc_img,dec_img,ae_img,real_img,epoch):
     fig.savefig("images/mnist_%d.png" % epoch)
     plt.close()               
 
-print(load_one_img((200,200,3)).shape)

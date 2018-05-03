@@ -17,39 +17,41 @@ class ContextEncoder():
         self.missing_shape = (self.mask_width, self.mask_height, self.channels)
 
 
-        # Build and compile the generator
         self.generator = load_model("saved_model/generator.h5")
-        self.generator.load_weights("saved_model/generator_weights.h5")
-        self.generator.compile(loss=['binary_crossentropy'],
-                               optimizer=optimizer)
+        self.generator.load_weights("saved_model/generator_weigths.h5")
+        #self.generator.compile(loss=['binary_crossentropy'],optimizer=optimizer)
 
-        # The generator takes noise as input and generates the missing
-        # part of the image
-        masked_img = Input(shape=self.img_shape)
-        gen_missing = self.generator(masked_img)
-        self.fill(sys.argv[1]) 
         
-    def fill(img_adr):
+        self.fill(None,self.img_shape) 
+        
+    def fill(self,img_adr,img_shape):
         import plotload as pl
-        img=pl.load_one_img(img_shape, dest=img_adr)
+        img,img_path=pl.load_one_img(img_shape, dest=img_adr)
         
-        masked_img, _, (y1, y2, x1, x2) = self.mask_select(img,img_adr)
-        guess = self.generator.predict(masked_img) 
+        masked_img, _, (y1, y2, x1, x2) = self.mask_select(img,img_path)
+        guess=np.squeeze(self.generator.predict(np.expand_dims(masked_img,axis=0)),axis=0) 
         
-        masked_img[x1:x2, y1:y2,:] = guess
+        
+        masked_img[y1:y2, x1:x2,:] = guess
         import scipy.misc
         scipy.misc.toimage(masked_img, cmin=-1, cmax=1).save('outfile.png')        
 
 
-    def mask_select(self,imgs,img_adr):
+    def mask_select(self,img,img_adr):
         import selector
-        x1,y1,x2,y2 = selector.get_coord(adr=img_adr,scale=1)
-        masked_img = np.empty_like(imgs)
+        x1,x2,y1,y2 = selector.get_coord(adr=img_adr,scale=1)
+        masked_img = np.empty_like(img)
         missing_parts = np.ndarray(shape=(x2-x1,y2-y1))
         masked_img = img.copy()
-        missing_parts =masked_img[x1:x2, y1:y2,:]
-        masked_img[x1:x2, y1:y2,:] = 0
-        return masked_imgs, missing_parts, (y1, y2, x1, x2)
+        missing_parts =masked_img[y1:y2, x1:x2,:].copy()
+        masked_img[y1:y2, x1:x2,:] = 0
+        if False:
+            import matplotlib.pyplot as plt
+            plt.imshow((0.5*masked_img+0.5))
+            plt.show() 
+            plt.imshow((0.5*missing_parts+0.5))
+            plt.show()        
+        return masked_img, missing_parts, (y1, y2, x1, x2)
 
 
 if __name__ == '__main__':

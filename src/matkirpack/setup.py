@@ -1,6 +1,6 @@
 from setuptools import setup
 setup(name='matpack',
-            version='0.4',
+            version='0.5',
             description='packages for master thesis',
             url='http://github.com/matkir',
             author='Mathias Kirkerod',
