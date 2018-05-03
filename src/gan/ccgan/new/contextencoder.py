@@ -191,6 +191,8 @@ class ContextEncoder():
         """
         X_train=plotload.load_polyp_data(self.img_shape)
         """
+        import sys
+        soft= True if '-soft' in sys.argv else False
         for epoch in range(epochs):
 
 
@@ -265,7 +267,8 @@ class ContextEncoder():
             axs[1,i].imshow(masked_imgs[i, :,:])
             axs[1,i].axis('off')
             filled_in = imgs[i].copy()
-            filled_in[y1[i]:y2[i], x1[i]:x2[i], :] = gen_missing[i]
+            print(filled_in.shape)
+            filled_in[x1[i]:x2[i], y1[i]:y2[i], :] = gen_missing[i]
             axs[2,i].imshow(filled_in)
             axs[2,i].axis('off')
         fig.savefig("images/cifar_%d.png" % epoch)
@@ -288,4 +291,4 @@ class ContextEncoder():
 
 if __name__ == '__main__':
     context_encoder = ContextEncoder()
-    context_encoder.train(epochs=90000, batch_size=64, sample_interval=1000)
+    context_encoder.train(epochs=90000, batch_size=32, sample_interval=1000)
