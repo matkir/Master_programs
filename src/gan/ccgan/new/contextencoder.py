@@ -23,8 +23,8 @@ class ContextEncoder():
     def __init__(self):
         self.img_rows = 576#8*64//2#32
         self.img_cols = 720#8*64//2#32
-        self.mask_height = self.img_cols//4#8*16//2#8
-        self.mask_width = self.img_rows//4 #8*16//2#8
+        self.mask_height = 288#300 #self.img_cols//4#8*16//2#8
+        self.mask_width = 360#350 #self.img_rows//4 #8*16//2#8
         self.channels = 3
         self.num_classes = 2
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
@@ -39,7 +39,7 @@ class ContextEncoder():
             metrics=['accuracy'])
 
         # Build and compile the generator
-        self.generator = self.build_generator()
+        self.generator = self.build_generator_img_size()
         self.generator.compile(loss=['binary_crossentropy'],
             optimizer=optimizer)
 
@@ -61,6 +61,73 @@ class ContextEncoder():
         self.combined.compile(loss=['mse', 'binary_crossentropy'],
             loss_weights=[0.999, 0.001],
             optimizer=optimizer)
+
+    def build_generator_img_size(self):
+
+
+        model = Sequential()
+
+        # Encoder
+        model.add(Conv2D(32, kernel_size=3, strides=2, input_shape=self.img_shape, padding="same"))
+        model.add(LeakyReLU(alpha=0.2))
+        model.add(BatchNormalization(momentum=0.8))
+        
+        model.add(Conv2D(64, kernel_size=3, strides=2, padding="same"))
+        model.add(LeakyReLU(alpha=0.2))
+        model.add(BatchNormalization(momentum=0.8))
+        
+        model.add(Dropout(0.5))
+        model.add(Conv2D(64, kernel_size=3, strides=2, padding="same"))
+        model.add(LeakyReLU(alpha=0.2))
+        model.add(BatchNormalization(momentum=0.8))
+        
+        model.add(Conv2D(128, kernel_size=3, strides=2, padding="same"))
+        model.add(LeakyReLU(alpha=0.2))
+        model.add(BatchNormalization(momentum=0.8))
+        
+        model.add(Conv2D(128, kernel_size=3, strides=3, padding="same"))
+        model.add(LeakyReLU(alpha=0.2))
+        model.add(BatchNormalization(momentum=0.8))
+
+        model.add(Conv2D(512, kernel_size=1, strides=3, padding="same"))
+        model.add(LeakyReLU(alpha=0.2))
+        model.add(Dropout(0.5))
+
+        # Decoder
+        model.add(UpSampling2D(size=(3,3)))
+        model.add(Conv2D(128, kernel_size=3, padding="same"))
+        model.add(Activation('relu'))
+        
+        model.add(UpSampling2D(size=(3,3)))
+        model.add(Conv2D(128, kernel_size=3, padding="same"))
+        model.add(Activation('relu'))
+        
+        model.add(UpSampling2D())
+        model.add(Conv2D(128, kernel_size=3, padding="same"))
+        model.add(Activation('relu'))
+       
+        model.add(BatchNormalization(momentum=0.8))
+        model.add(UpSampling2D())
+        model.add(Conv2D(64, kernel_size=3, padding="same"))
+        model.add(Activation('relu'))
+        
+        model.add(BatchNormalization(momentum=0.8))
+        model.add(UpSampling2D())
+        model.add(Dropout(0.5))
+        model.add(Conv2D(32, kernel_size=3, padding="same"))
+        model.add(Activation('relu'))        
+        
+        model.add(BatchNormalization(momentum=0.8))
+        model.add(Conv2D(self.channels, kernel_size=3, padding="same"))
+        model.add(Activation('tanh'))
+
+        model.summary()
+
+        masked_img = Input(shape=self.img_shape)
+        gen_missing = model(masked_img)
+
+        return Model(masked_img, gen_missing)
+
 
     def build_generator(self):
 
