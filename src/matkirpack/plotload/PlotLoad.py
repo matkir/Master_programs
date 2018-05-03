@@ -91,17 +91,15 @@ def load_one_img(img_shape,dest=None):
     import os
     if dest==None:
         folder=os.path.expanduser("~")
-        folder=folder+"/Documents/kvasir-dataset-v2/green"
-        img=np.random.choice(os.listdir(folder),1)
+        folder=folder+"/Documents/kvasir-dataset-v2/green/"
+        img=folder+np.random.choice(os.listdir(folder),1)[0]
     else:
         img=dest
         
     
-    data=np.ndarray(shape=(1, img_shape[0], img_shape[1], img_shape[2]),dtype=np.int32)
     save=cv2.cvtColor(cv2.imread(img), cv2.COLOR_BGR2RGB)
     save=cv2.resize(save,(img_shape[1],img_shape[0]))
-    data[i]=save
-    data = (data.astype(np.float32) - 127.5) / 127.5
+    data = (save.astype(np.float32) - 127.5) / 127.5
     return data
 
 
@@ -152,3 +150,5 @@ def plot_1_to_255(enc_img,dec_img,ae_img,real_img,epoch):
     plt.suptitle('decoded img | encoded img | encoded then decoded', fontsize=16)
     fig.savefig("images/mnist_%d.png" % epoch)
     plt.close()               
+
+print(load_one_img((200,200,3)).shape)
