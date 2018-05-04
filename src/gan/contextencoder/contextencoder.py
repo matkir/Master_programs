@@ -275,8 +275,6 @@ class ContextEncoder():
                 print(f"most used picture was traned on {max(numtimes)} times")
                 numtimes=np.zeros(batch_size*5)        
                 X_train=plotload.load_polyp_batch(self.img_shape, batch_size*5)
-                plt.imshow(0.5*X_train[0]+0.5)
-                plt.show()
             if epoch%50==0:
                 #after 50 itterations we flip the images, to make the set 2x times as large. sorry for not vectorizing
                 for i in range(batch_size):
