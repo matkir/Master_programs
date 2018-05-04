@@ -65,6 +65,7 @@ class ContextEncoder():
             loss_weights=[0.999, 0.001],
             optimizer=optimizer)
         self.generator.save("saved_model/generator.h5")
+        self.discriminator.save("saved_model/discriminator.h5")
 
     def build_generator_img_size(self):
 
@@ -340,22 +341,8 @@ class ContextEncoder():
         plt.close()
 
     def save_model(self):
-        self.generator.save("saved_model/generator.h5")
         self.generator.save_weights("saved_model/generator_weigths.h5")
-        self.discriminator.save("saved_model/discriminator.h5")
         self.discriminator.save_weights("saved_model/discriminator_weigths.h5")
-        """
-        def save(model, model_name):
-            model_path = "saved_model/%s.json" % model_name
-            weights_path = "saved_model/%s_weights.hdf5" % model_name
-            options = {"file_arch": model_path,
-                        "file_weight": weights_path}
-            json_string = model.to_json()
-            open(options['file_arch'], 'w').write(json_string)
-            model.save_weights(options['file_weight'])
-        """
-        #save(self.generator, "context_encoder_generator")
-        #save(self.discriminator, "context_encoder_discriminator")
 
 
 if __name__ == '__main__':
