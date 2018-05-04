@@ -64,6 +64,7 @@ class ContextEncoder():
         self.combined.compile(loss=['mse', 'binary_crossentropy'],
             loss_weights=[0.999, 0.001],
             optimizer=optimizer)
+        self.generator.save("saved_model/generator.h5")
 
     def build_generator_img_size(self):
 
@@ -99,31 +100,31 @@ class ContextEncoder():
         # Decoder
         #model.add(UpSampling2D(size=(3,3)))
         model.add(Conv2D(256, kernel_size=3))
-        model.add(LeakyReLU(alpha=0.2))
-        #model.add(Activation('relu'))
+        #model.add(LeakyReLU(alpha=0.2))
+        model.add(Activation('relu'))
         
         model.add(UpSampling2D(size=(3,3)))
         model.add(Conv2D(256, kernel_size=3))
-        model.add(LeakyReLU(alpha=0.2))
-        #model.add(Activation('relu'))
+        #model.add(LeakyReLU(alpha=0.2))
+        model.add(Activation('relu'))
         
         model.add(UpSampling2D())
         model.add(Conv2D(128, kernel_size=3))
-        model.add(LeakyReLU(alpha=0.2))
-        #model.add(Activation('relu'))
+        #model.add(LeakyReLU(alpha=0.2))
+        model.add(Activation('relu'))
        
         model.add(BatchNormalization(momentum=0.8))
         model.add(UpSampling2D())
         model.add(Conv2D(64, kernel_size=3))
-        model.add(LeakyReLU(alpha=0.2))
-        #model.add(Activation('relu'))
+        #model.add(LeakyReLU(alpha=0.2))
+        model.add(Activation('relu'))
         
         model.add(BatchNormalization(momentum=0.8))
         model.add(UpSampling2D())
         model.add(Dropout(0.5))
         model.add(Conv2D(32, kernel_size=3))
-        model.add(LeakyReLU(alpha=0.2))
-        #model.add(Activation('relu'))        
+        #model.add(LeakyReLU(alpha=0.2))
+        model.add(Activation('relu'))        
         
         model.add(BatchNormalization(momentum=0.8))
         model.add(Conv2D(self.channels, kernel_size=3))
