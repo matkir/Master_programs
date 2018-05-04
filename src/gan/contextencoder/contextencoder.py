@@ -64,8 +64,9 @@ class ContextEncoder():
         self.combined.compile(loss=['mse', 'binary_crossentropy'],
             loss_weights=[0.999, 0.001],
             optimizer=optimizer)
-        self.generator.save("saved_model/generator.h5")
-        self.discriminator.save("saved_model/discriminator.h5")
+        if "-save" in sys.argv:
+            self.generator.save("saved_model/generator.h5")
+            self.discriminator.save("saved_model/discriminator.h5")
 
     def build_generator_img_size(self):
 
@@ -269,12 +270,20 @@ class ContextEncoder():
             # ---------------------
 
             # Select a random half batch of images
+                
             if epoch%100==0:
                 print(f"most used picture was traned on {max(numtimes)} times")
                 numtimes=np.zeros(batch_size*5)        
                 X_train=plotload.load_polyp_batch(self.img_shape, batch_size*5)
+                plt.imshow(0.5*X_train[0]+0.5)
+                plt.show()
+            if epoch%50==0:
+                #after 50 itterations we flip the images, to make the set 2x times as large. sorry for not vectorizing
+                for i in range(batch_size):
+                    X_train[i]=np.fliplr(X_train[i])
             idx = np.random.randint(0, X_train.shape[0], half_batch)
             imgs = X_train[idx]
+
             numtimes[idx]+=1 #to count num of times each pic was trained on
             
             masked_imgs, missing, _ = self.mask_randomly(imgs)
