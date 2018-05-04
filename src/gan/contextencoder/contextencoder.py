@@ -260,6 +260,7 @@ class ContextEncoder():
         """
         import sys
         soft= True if '-soft' in sys.argv else False
+        numtimes=np.zeros(batch_size*5)
         for epoch in range(epochs):
 
 
@@ -269,9 +270,12 @@ class ContextEncoder():
 
             # Select a random half batch of images
             if epoch%100==0:
+                print(f"most used picture was traned on {max(numtimes)} times")
+                numtimes=np.zeros(batch_size*5)        
                 X_train=plotload.load_polyp_batch(self.img_shape, batch_size*5)
             idx = np.random.randint(0, X_train.shape[0], half_batch)
             imgs = X_train[idx]
+            numtimes[idx]+=1 #to count num of times each pic was trained on
             
             masked_imgs, missing, _ = self.mask_randomly(imgs)
 
