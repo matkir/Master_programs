@@ -3,10 +3,13 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-def _crop_img(input_img,gray,tol=20):
+def _crop_img(input_img,gray,tol=20,erosion=True):
     """
     Removes the black bars around images
     """
+    if erosion:
+        kernel = np.ones((5,5),np.uint8)
+        gray = cv2.morphologyEx(gray, cv2.MORPH_OPEN, kernel)        
     mask = gray>tol
     return input_img[np.ix_(mask.any(1),mask.any(0))]
 
