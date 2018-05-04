@@ -333,6 +333,8 @@ class ContextEncoder():
     def save_model(self):
         self.generator.save("saved_model/generator.h5")
         self.generator.save_weights("saved_model/generator_weigths.h5")
+        self.discriminator.save("saved_model/discriminator.h5")
+        self.discriminator.save_weights("saved_model/discriminator_weigths.h5")
         """
         def save(model, model_name):
             model_path = "saved_model/%s.json" % model_name
