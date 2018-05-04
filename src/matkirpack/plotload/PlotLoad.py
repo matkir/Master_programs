@@ -3,7 +3,14 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-def load_polyp_data(img_shape,data_type=None,rot=False):
+def _crop_img(input_img,gray,tol=20):
+    """
+    Removes the black bars around images
+    """
+    mask = gray>tol
+    return input_img[np.ix_(mask.any(1),mask.any(0))]
+
+def load_polyp_data(img_shape,data_type=None,rot=False,crop=True):
     """
     Loads the polyp data
     """
@@ -31,6 +38,9 @@ def load_polyp_data(img_shape,data_type=None,rot=False):
     for img in tqdm(os.listdir(folder)):
         path=os.path.join(folder,img)
         save=cv2.cvtColor(cv2.imread(path), cv2.COLOR_BGR2RGB)
+        if crop:
+            gray = cv2.cvtColor(cv2.imread(path),cv2.COLOR_BGR2GRAY)
+            save=_crop_img(save,gray)
         save=cv2.resize(save,(img_shape[1],img_shape[0]))
         if rot:
             for r in [0,90,180,270]:
@@ -47,7 +57,7 @@ def load_polyp_data(img_shape,data_type=None,rot=False):
     return data
 
 
-def load_polyp_batch(img_shape,batch_size,data_type=None,rot=False):
+def load_polyp_batch(img_shape,batch_size,data_type=None,rot=False,crop=True):
     """
     Loads the polyp data, in a for of random images from a batch
     """
@@ -68,6 +78,9 @@ def load_polyp_batch(img_shape,batch_size,data_type=None,rot=False):
     for img in imgs:
         path=os.path.join(folder,img)
         save=cv2.cvtColor(cv2.imread(path), cv2.COLOR_BGR2RGB)
+        if crop:
+            gray = cv2.cvtColor(cv2.imread(path),cv2.COLOR_BGR2GRAY)
+            save=_crop_img(save,gray)
         save=cv2.resize(save,(img_shape[1],img_shape[0]))
         
         r=np.random.choice([0,90,180,270],p=[0.7,0.1,0.1,0.1])
@@ -84,7 +97,7 @@ def load_polyp_batch(img_shape,batch_size,data_type=None,rot=False):
     np.save("train_data.npy", data)
     return data
 
-def load_one_img(img_shape,dest=None):
+def load_one_img(img_shape,dest=None,crop=True):
     """
     Loads a spessific img, or random if non declared
     """
@@ -98,6 +111,9 @@ def load_one_img(img_shape,dest=None):
         
     
     save=cv2.cvtColor(cv2.imread(img), cv2.COLOR_BGR2RGB)
+    if crop:
+        gray = cv2.cvtColor(cv2.imread(img),cv2.COLOR_BGR2GRAY)
+        save=_crop_img(save,gray)
     save=cv2.resize(save,(img_shape[1],img_shape[0]))
     data = (save.astype(np.float32) - 127.5) / 127.5
     return data,img

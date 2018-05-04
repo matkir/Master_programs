@@ -28,6 +28,7 @@ class ContextEncoder():
         import plotload as pl
         img,img_path=pl.load_one_img(img_shape, dest=img_adr)
         
+        #WARNING; IMAGE IS NOT THE SAME AS SHOWN ON THE SCREEN, IT HAS BEEN CROPPED
         masked_img, _, (y1, y2, x1, x2) = self.mask_select(img,img_path)
         guess=np.squeeze(self.generator.predict(np.expand_dims(masked_img,axis=0)),axis=0) 
         

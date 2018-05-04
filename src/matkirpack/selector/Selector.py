@@ -106,7 +106,7 @@ def get_coord(adr='2.jpg',scale=1):
 
     pygame.init()
     screen, px = _setup(input_loc,scale)
-    left, upper, right, lower = _mainLoop(screen, px)
+    left, upper, right, lower, _ = _mainLoop(screen, px)
     # ensure output rect always has positive width, height
     """
     if right < left:
