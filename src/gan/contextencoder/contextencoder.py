@@ -43,6 +43,9 @@ class ContextEncoder():
         self.generator.compile(loss=['binary_crossentropy'],
             optimizer=optimizer)
 
+        if '-weights' in sys.argv:
+            self.generator.load_weights("saved_model/generator_weigths.h5")
+            self.discriminator.load_weights("saved_model/discriminator_weigths.h5")
         # The generator takes noise as input and generates the missing
         # part of the image
         masked_img = Input(shape=self.img_shape)
