@@ -285,6 +285,11 @@ class ContextEncoder():
                 valid = np.ones((half_batch, 1))
                 fake = np.zeros((half_batch, 1))
 
+            if epoch%120==0:
+                #small shakeup to get out of local minimas
+                valid=placeholder
+                valid=fake
+                fake=placeholder
             # Train the discriminator
             d_loss_real = self.discriminator.train_on_batch(missing, valid)
             d_loss_fake = self.discriminator.train_on_batch(gen_missing, fake)
