@@ -287,7 +287,7 @@ class ContextEncoder():
 
             if epoch%120==0:
                 #small shakeup to get out of local minimas
-                valid=placeholder
+                placeholder=valid
                 valid=fake
                 fake=placeholder
             # Train the discriminator
