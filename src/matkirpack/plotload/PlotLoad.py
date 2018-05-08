@@ -3,6 +3,24 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+
+def _reduce_glare(input_img,tol=250,avg_mode=False):
+    """
+    Clips images, so that the highest values are lower
+    """
+    if not avg_mode:
+        return np.clip(input_img, 0, tol)
+    avg=np.average(input_img[(input_img.shape[0]//3):(2*input_img.shape[0]//3),(input_img.shape[1]//3):(2*input_img.shape[1]//3),0])
+    avg1=np.average(input_img[(input_img.shape[0]//3):(2*input_img.shape[0]//3),(input_img.shape[1]//3):(2*input_img.shape[1]//3),1])
+    avg2=np.average(input_img[(input_img.shape[0]//3):(2*input_img.shape[0]//3),(input_img.shape[1]//3):(2*input_img.shape[1]//3),2])
+    input_img[input_img[:,:,0]>tol]=-avg
+    input_img[input_img[:,:,1]>tol]=-avg1
+    input_img[input_img[:,:,2]>tol]=-avg2
+    return input_img
+def _mask_around(input_img,tol):
+    pass
+    
+    
 def _crop_img(input_img,gray,tol=20,erosion=True):
     """
     Removes the black bars around images
@@ -13,7 +31,7 @@ def _crop_img(input_img,gray,tol=20,erosion=True):
     mask = gray>tol
     return input_img[np.ix_(mask.any(1),mask.any(0))]
 
-def load_polyp_data(img_shape,data_type=None,rot=False,crop=True):
+def load_polyp_data(img_shape,data_type=None,rot=False,crop=True,glare=False):
     """
     Loads the polyp data
     """
@@ -60,7 +78,7 @@ def load_polyp_data(img_shape,data_type=None,rot=False,crop=True):
     return data
 
 
-def load_polyp_batch(img_shape,batch_size,data_type=None,rot=False,crop=True):
+def load_polyp_batch(img_shape,batch_size,data_type=None,rot=False,crop=True,glare=False):
     """
     Loads the polyp data, in a for of random images from a batch
     """
@@ -100,7 +118,7 @@ def load_polyp_batch(img_shape,batch_size,data_type=None,rot=False,crop=True):
     np.save("train_data.npy", data)
     return data
 
-def load_one_img(img_shape,dest=None,crop=True):
+def load_one_img(img_shape,dest=None,crop=True,glare=True):
     """
     Loads a spessific img, or random if non declared
     """
@@ -114,9 +132,11 @@ def load_one_img(img_shape,dest=None,crop=True):
         
     
     save=cv2.cvtColor(cv2.imread(img), cv2.COLOR_BGR2RGB)
+    gray = cv2.cvtColor(cv2.imread(img),cv2.COLOR_BGR2GRAY)
     if crop:
-        gray = cv2.cvtColor(cv2.imread(img),cv2.COLOR_BGR2GRAY)
         save=_crop_img(save,gray)
+    if glare:
+        save=_reduce_glare(save)
     save=cv2.resize(save,(img_shape[1],img_shape[0]))
     data = (save.astype(np.float32) - 127.5) / 127.5
     return data,img
@@ -170,3 +190,6 @@ def plot_1_to_255(enc_img,dec_img,ae_img,real_img,epoch):
     fig.savefig("images/mnist_%d.png" % epoch)
     plt.close()               
 
+if __name__=='__main__':
+    a=load_one_img((1000,1000,3))
+    print()
