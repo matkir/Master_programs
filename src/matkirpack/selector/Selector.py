@@ -72,9 +72,8 @@ def _setup(path,scale):
     pygame.display.flip()
     return screen, px
 
-def _mainLoop(screen, px):
+def _mainLoop(screen, px, box=(280,208)):
     going=True
-    box=(280,208)
     startpos = endpos = prior = None
     n=0
     while n!=1:
@@ -95,7 +94,7 @@ def _mainLoop(screen, px):
     return (endpos[0]-box[0]//2,endpos[0]+box[0]//2,endpos[1]-box[1]//2,endpos[1]+box[1]//2,going)    
 
     
-def get_coord(adr='2.jpg',scale=1):
+def get_coord(adr='2.jpg',scale=1,mask_width=0,mask_height=0):
     #################
     ###starts here###
     #################
@@ -106,7 +105,7 @@ def get_coord(adr='2.jpg',scale=1):
 
     pygame.init()
     screen, px = _setup(input_loc,scale)
-    left, upper, right, lower, _ = _mainLoop(screen, px)
+    left, upper, right, lower, _ = _mainLoop(screen, px,(mask_width,mask_height))
     # ensure output rect always has positive width, height
     """
     if right < left:
@@ -118,11 +117,7 @@ def get_coord(adr='2.jpg',scale=1):
     return int(left*scale),int(upper*scale),int(right*scale),int(lower*scale)
 
 
-def get_coord_live(adr='2.jpg',scale=1):
-    img_rows = 576#8*64//2#32
-    img_cols = 720#8*64//2#32
-    mask_height = 208#300 #self.img_cols//4#8*16//2#8
-    mask_width = 280#350 #self.img_rows//4 #8*16//2#8
+def get_coord_live(adr='2.jpg',scale=1,img_rows=576,img_cols=720,mask_height=208,mask_width=280):
     channels = 3
     img_shape = (img_rows, img_cols, channels)
     missing_shape = (mask_width, mask_height, channels)
@@ -143,7 +138,7 @@ def get_coord_live(adr='2.jpg',scale=1):
     while going:
         img,img_path=pl.load_one_img(img_shape, dest='tmp.png')
         screen, px = _setup('tmp.png',1)
-        left, upper, right, lower, going = _mainLoop(screen, px)
+        left, upper, right, lower, going = _mainLoop(screen, px, (mask_width, mask_height))
         if not going:   
             scipy.misc.toimage(masked_img, cmin=-1, cmax=1).save('output.png')
             break
