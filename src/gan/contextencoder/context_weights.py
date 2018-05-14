@@ -95,31 +95,31 @@ class Weight_model():
         model = Sequential()
 
         # Encoder
-        model.add(Conv2D(64, kernel_size=3, strides=1, input_shape=self.img_shape, padding="same"))
+        model.add(Conv2D(16, kernel_size=3, strides=1, input_shape=self.img_shape, padding="same"))
         model.add(LeakyReLU(alpha=0.2))
         model.add(BatchNormalization(momentum=0.8))
         
-        model.add(Conv2D(128, kernel_size=3, strides=1, padding="same"))
+        model.add(Conv2D(16, kernel_size=3, strides=1, padding="same"))
         model.add(LeakyReLU(alpha=0.2))
         model.add(BatchNormalization(momentum=0.8))
         
-        model.add(Conv2D(128, kernel_size=3, strides=3, padding="same"))
+        model.add(Conv2D(32, kernel_size=3, strides=3, padding="same"))
         model.add(LeakyReLU(alpha=0.2))
         model.add(BatchNormalization(momentum=0.8))   
         
-        model.add(Conv2D(128, kernel_size=3, strides=3, padding="same"))
+        model.add(Conv2D(32, kernel_size=3, strides=3, padding="same"))
         model.add(LeakyReLU(alpha=0.2))
         model.add(BatchNormalization(momentum=0.8))
         
-        model.add(Conv2D(256, kernel_size=3, strides=2, padding="same"))
+        model.add(Conv2D(64, kernel_size=3, strides=2, padding="same"))
         model.add(LeakyReLU(alpha=0.2))
         model.add(BatchNormalization(momentum=0.8))
         
-        model.add(Conv2D(256, kernel_size=3, strides=2, padding="same"))
+        model.add(Conv2D(64, kernel_size=3, strides=2, padding="same"))
         model.add(LeakyReLU(alpha=0.2))
         model.add(BatchNormalization(momentum=0.8))
 
-        model.add(Conv2D(256, kernel_size=1, strides=2, padding="same"))
+        model.add(Conv2D(128, kernel_size=1, strides=2, padding="same"))
         model.add(LeakyReLU(alpha=0.2))
        
         # Dropout
@@ -131,7 +131,7 @@ class Weight_model():
         model.add(Activation('relu'))
         
         model.add(UpSampling2D())
-        model.add(Conv2D(128, kernel_size=3, padding="same"))
+        model.add(Conv2D(64, kernel_size=3, padding="same"))
         model.add(Activation('relu'))
        
         model.add(BatchNormalization(momentum=0.8))
