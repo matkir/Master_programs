@@ -115,9 +115,6 @@ class Weight_model():
         model.add(LeakyReLU(alpha=0.2))
         model.add(BatchNormalization(momentum=0.8))
         
-        model.add(Conv2D(256, kernel_size=3, strides=2, padding="same"))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(BatchNormalization(momentum=0.8))
 
         model.add(Conv2D(512, kernel_size=1, strides=2, padding="same"))
         model.add(LeakyReLU(alpha=0.2))
@@ -134,10 +131,6 @@ class Weight_model():
         model.add(Conv2D(128, kernel_size=3, padding="same"))
         model.add(Activation('relu'))
        
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(UpSampling2D())
-        model.add(Conv2D(64, kernel_size=3, padding="same"))
-        model.add(Activation('relu'))
         
         model.add(BatchNormalization(momentum=0.8))
         model.add(UpSampling2D())
