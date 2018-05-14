@@ -87,6 +87,22 @@ class ContextEncoder():
             masked_imgs[i] = masked_img
 
         return masked_imgs, missing_parts, (y1, y2, x1, x2)
+    def mask_cornerly(self, imgs):
+        y1 = np.random.randint(3*self.img_cols//4, self.img_cols - self.mask_height, imgs.shape[0])
+        y2 = y1 + self.mask_height
+        x1 = np.random.randint(0, self.img_rows//4 - self.mask_width, imgs.shape[0])
+        x2 = x1 + self.mask_width
+	
+        masked_imgs = np.empty_like(imgs)
+        missing_parts = np.empty((imgs.shape[0],self.mask_width,self.mask_height, self.channels))
+        for i, img in enumerate(imgs):
+            masked_img = img.copy()
+            _y1, _y2, _x1, _x2 = y1[i], y2[i], x1[i], x2[i]
+            missing_parts[i] = masked_img[_x1:_x2, _y1:_y2, :].copy()
+            masked_img[_x1:_x2, _y1:_y2, :] = -1
+            masked_imgs[i] = masked_img
+
+        return masked_imgs, missing_parts, (y1, y2, x1, x2)
 
 
     def train(self, epochs, batch_size=128, sample_interval=50):
@@ -97,6 +113,7 @@ class ContextEncoder():
         """
         import sys
         soft= True if '-soft' in sys.argv else False
+        corner= True if '-corner' in sys.argv else False
         numtimes=np.zeros(batch_size*5)
         for epoch in range(epochs):
 
@@ -120,7 +137,10 @@ class ContextEncoder():
 
             numtimes[idx]+=1 #to count num of times each pic was trained on
             
-            masked_imgs, missing, _ = self.mask_randomly(imgs)
+            if corner:    
+                masked_imgs, missing, _ = self.mask_cornerly(imgs)
+            else:
+                masked_imgs, missing, _ = self.mask_randomly(imgs)
 
             # Generate a half batch of new images
             gen_missing = self.generator.predict(masked_imgs)
@@ -145,18 +165,20 @@ class ContextEncoder():
             # ---------------------
             #  Train Generator
             # ---------------------
-            for _ in range(1):
-                # Select a random half batch of images
-                idx = np.random.randint(0, X_train.shape[0], batch_size)
-                imgs = X_train[idx]
-        
+            # Select a random half batch of images
+            idx = np.random.randint(0, X_train.shape[0], batch_size)
+            imgs = X_train[idx]
+    
+            if corner:
+                masked_imgs, missing_parts, _ = self.mask_cornerly(imgs)
+            else:
                 masked_imgs, missing_parts, _ = self.mask_randomly(imgs)
-        
-                # Generator wants the discriminator to label the generated images as valid
-                valid = np.ones((batch_size, 1))
-        
-                # Train the generator
-                g_loss = self.combined.train_on_batch(masked_imgs, [missing_parts, valid])
+                
+            # Generator wants the discriminator to label the generated images as valid
+            valid = np.ones((batch_size, 1))
+    
+            # Train the generator
+            g_loss = self.combined.train_on_batch(masked_imgs, [missing_parts, valid])
 
             # Plot the progress
             print ("%d [D loss: %f, acc: %.2f%%] [G loss: %f, mse: %f]" % (epoch, d_loss[0], 100*d_loss[1], g_loss[0], g_loss[1]))

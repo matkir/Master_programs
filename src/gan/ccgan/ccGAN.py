@@ -10,37 +10,43 @@ from keras.optimizers import Adam
 from keras import losses
 from keras.utils import to_categorical
 import keras.backend as K
+import plotload
+import sys
 
 from selector import selector
 import matplotlib.pyplot as plt
 
 import numpy as np
 
-class ContextEncoder():
+class CCgan():
     def __init__(self):
-        self.scale=1
-        self.img_rows = int(720*self.scale)
-        self.img_cols = int(576*self.scale)
-        self.mask_height = int(144*self.scale) # aprox size of green
-        self.mask_width = int(180*self.scale) # -------||----------
+        self.img_rows = 576#8*64//2#32
+        self.img_cols = 720#8*64//2#32
+        self.mask_width = 128#208
+        self.mask_height = 160#280
         self.channels = 3
-        self.num_classes = 2
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
-        self.missing_shape = (self.mask_height, self.mask_width, self.channels)
-
+        self.missing_shape = (self.mask_width, self.mask_height, self.channels)
+        self.model=Weight_model(self.img_rows, self.img_cols, self.mask_width,self.mask_height)
+    
         optimizer = Adam(0.0002, 0.5)
         
-        # Build and compile the discriminator
-        self.discriminator = self.build_discriminator()
-        self.discriminator.compile(loss='binary_crossentropy', 
+        
+        #Build and compile the discriminator
+        self.discriminator = self.model.build_discriminator()
+        self.discriminator.compile(loss='binary_crossentropy',
             optimizer=optimizer,
             metrics=['accuracy'])
 
+ 
         # Build and compile the generator
-        self.generator = self.build_generator()
-        self.generator.compile(loss=['binary_crossentropy'], 
+        self.generator = self.model.build_generator_img_size()
+        self.generator.compile(loss=['binary_crossentropy'],
             optimizer=optimizer)
 
+        if '-weights' in sys.argv:
+            self.generator.load_weights("saved_model/generator_weigths.h5")
+            self.discriminator.load_weights("saved_model/discriminator_weigths.h5")
         # The generator takes noise as input and generates the missing
         # part of the image
         masked_img = Input(shape=self.img_shape)
@@ -54,133 +60,84 @@ class ContextEncoder():
         valid = self.discriminator(gen_missing)
 
         # The combined model  (stacked generator and discriminator) takes
-        # masked_img as input => generates missing image => determines validity 
+        # masked_img as input => generates missing image => determines validity
         self.combined = Model(masked_img , [gen_missing, valid])
         self.combined.compile(loss=['mse', 'binary_crossentropy'],
             loss_weights=[0.999, 0.001],
             optimizer=optimizer)
-       
-    def build_generator(self):
-
+        if "-save" in sys.argv:
+            self.generator.save("saved_model/generator.h5")
+            self.discriminator.save("saved_model/discriminator.h5")        
         
-        model = Sequential()
-
-        # Encoder
-        model.add(Conv2D(32, kernel_size=3, strides=2, input_shape=self.img_shape, padding="same"))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(Conv2D(64, kernel_size=3, strides=2, padding="same"))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(Conv2D(128, kernel_size=3, strides=2, padding="same"))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(BatchNormalization(momentum=0.8))
-
-        model.add(Conv2D(512, kernel_size=1, strides=2, padding="same"))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(Dropout(0.5))
-
-        # Decoder
-        model.add(UpSampling2D())
-        model.add(Conv2D(128, kernel_size=3, padding="same"))
-        model.add(Activation('relu'))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(UpSampling2D())
-        model.add(Conv2D(64, kernel_size=3, padding="same"))
-        model.add(Activation('relu'))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(Conv2D(self.channels, kernel_size=3, padding="same"))
-        model.add(Activation('tanh'))
-
-        model.summary()
-
-        masked_img = Input(shape=self.img_shape)
-        gen_missing = model(masked_img)
-
-        return Model(masked_img, gen_missing)
-
-    def build_discriminator(self):
-        
-        model = Sequential()
-
-        model.add(Conv2D(64, kernel_size=3, strides=2, input_shape=self.missing_shape, padding="same"))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(Conv2D(128, kernel_size=3, strides=2, padding="same"))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(Conv2D(256, kernel_size=3, padding="same"))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(Flatten())
-        model.add(Dense(1, activation='sigmoid'))
-        model.summary()
-
-        img = Input(shape=self.missing_shape)
-        validity = model(img)
-
-        return Model(img, validity)
-
     def mask_randomly(self, imgs):
         y1 = np.random.randint(0, self.img_cols - self.mask_height, imgs.shape[0])
         y2 = y1 + self.mask_height
         x1 = np.random.randint(0, self.img_rows - self.mask_width, imgs.shape[0])
         x2 = x1 + self.mask_width
-        return self.mask_area(y1, y2, x1, x2, imgs)
-        
-    def mask_area2(self,y1,y2,x1,x2,imgs):
+	
         masked_imgs = np.empty_like(imgs)
-        missing_parts = np.ndarray(shape=(x2[0]-x1[0],y2[0]-y1[0]))
-        masked_img = img.copy()
-        _y1, _y2, _x1, _x2 = y1[i], y2[i], x1[i], x2[i]
-        missing_parts =masked_img[_x1:_x2, _y1:_y2, :].copy()
-        masked_img[_x1:_x2, _y1:_y2, :] = 0
-        masked_imgs[i] = masked_img
-        return masked_imgs, missing_parts, (y1, y2, x1, x2)
-       
-    def mask_area(self,y1,y2,x1,x2,imgs):
-        masked_imgs = np.empty_like(imgs)
-        missing_parts = np.empty((imgs.shape[0], self.mask_width, self.mask_height, self.channels))
+        missing_parts = np.empty((imgs.shape[0],self.mask_width,self.mask_height, self.channels))
         for i, img in enumerate(imgs):
             masked_img = img.copy()
             _y1, _y2, _x1, _x2 = y1[i], y2[i], x1[i], x2[i]
-            a = masked_img[_x1:_x2, _y1:_y2, :].copy()
-            missing_parts[i] = a
-            masked_img[_x1:_x2, _y1:_y2, :] = 0
+            missing_parts[i] = masked_img[_x1:_x2, _y1:_y2, :].copy()
+            masked_img[_x1:_x2, _y1:_y2, :] = -1
             masked_imgs[i] = masked_img
-
-        return masked_imgs, missing_parts, (y1, y2, x1, x2)
-    def mask_select(self,imgs):
-        x1,y1,x2,y2 = selector.get_coord(adr='2.jpg',scale=1)
-        return self.mask_area2([y1], [y2], [x1], [x2], imgs)
+    
+    def replace_spot(self, imgs,missing_parts):
+	
+        masked_imgs = np.empty_like(imgs)
+        missing_parts = np.empty((imgs.shape[0],self.mask_width,self.mask_height, self.channels))
+        for i, img in enumerate(imgs):
+            masked_img = img.copy()
+            _y1, _y2, _x1, _x2 = y1[i], y2[i], x1[i], x2[i]
+            missing_parts[i] = masked_img[_x1:_x2, _y1:_y2, :].copy()
+            masked_img[_x1:_x2, _y1:_y2, :] = -1
+            masked_imgs[i] = masked_img    
+        return imgs
     
     
-
+    
     def train(self, epochs, batch_size=128, save_interval=50):
-        from plotload import load_polyp_data
-        X_train=load_polyp_data(self.img_shape)
-
-        half_batch = int(batch_size / 2)
-
+        soft= True if '-soft' in sys.argv else False
+        numtimes=np.zeros(batch_size*5)
         for epoch in range(epochs):
 
 
             # ---------------------
             #  Train Discriminator
             # ---------------------
-
-            # Select a random half batch of images
+            if epoch%100==0:
+                print(f"most used picture was traned on {max(numtimes)} times")
+                numtimes=np.zeros(batch_size*5)        
+                X_train=plotload.load_polyp_batch(self.img_shape, batch_size*5)
+            if epoch%50==0:
+                #after 50 itterations we flip the images, to make the set 2x times as large. sorry for not vectorizing
+                for i in range(batch_size):
+                    X_train[i]=np.fliplr(X_train[i])
+            
+            
             idx = np.random.randint(0, X_train.shape[0], half_batch)
             imgs = X_train[idx]
 
+            numtimes[idx]+=1 #to count num of times each pic was trained on
+
             masked_imgs, missing, _ = self.mask_randomly(imgs)
-            masked_imgs, missing, _ = self.mask_select(imgs)
-            
-            # Generate a half batch of new images
             gen_missing = self.generator.predict(masked_imgs)
 
-            valid = np.ones((half_batch, 1))
-            fake = np.zeros((half_batch, 1))
+            if soft:
+                valid = 0.2*np.random.random_sample((half_batch,1))+0.9
+                fake = 0.1*np.random.random_sample((half_batch,1))
+            else:
+                valid = np.ones((half_batch, 1))
+                fake = np.zeros((half_batch, 1))
+
+            if epoch%120==0:
+                #small shakeup to get out of local minimas
+                placeholder=valid
+                valid=fake
+                fake=placeholder
+
 
             # Train the discriminator
             d_loss_real = self.discriminator.train_on_batch(missing, valid)
@@ -207,15 +164,17 @@ class ContextEncoder():
             print ("%d [D loss: %f, acc: %.2f%%] [G loss: %f, mse: %f]" % (epoch, d_loss[0], 100*d_loss[1], g_loss[0], g_loss[1]))
 
             # If at save interval => save generated image samples
-            if epoch % save_interval == 0:
+            if epoch % sample_interval == 0:
                 # Select a random half batch of images
                 idx = np.random.randint(0, X_train.shape[0], 6)
                 imgs = X_train[idx]
-                self.save_imgs(epoch, imgs)
+                self.sample_images(epoch, imgs)
+            if epoch % (sample_interval*5) == 0:
+                self.save_model() 
 
-    def save_imgs(self, epoch, imgs):
+    def sample_images(self, epoch, imgs):
         r, c = 3, 6
-        
+
         masked_imgs, missing_parts, (y1, y2, x1, x2) = self.mask_randomly(imgs)
         gen_missing = self.generator.predict(masked_imgs)
 
@@ -230,34 +189,16 @@ class ContextEncoder():
             axs[1,i].imshow(masked_imgs[i, :,:])
             axs[1,i].axis('off')
             filled_in = imgs[i].copy()
-            filled_in[y1[i]:y2[i], x1[i]:x2[i], :] = gen_missing[i]
+            filled_in[x1[i]:x2[i], y1[i]:y2[i], :] = gen_missing[i]
             axs[2,i].imshow(filled_in)
             axs[2,i].axis('off')
-        fig.savefig("context_encoder/images/cifar_%d.png" % epoch)
+        fig.savefig("images/cc_%d.png" % epoch)
         plt.close()
 
     def save_model(self):
+        self.generator.save_weights("saved_model/generator_weigths.h5")
+        self.discriminator.save_weights("saved_model/discriminator_weigths.h5")
 
-        def save(model, model_name):
-            model_path = "context_encoder/saved_model/%s.json" % model_name
-            weights_path = "context_encoder/saved_model/%s_weights.hdf5" % model_name
-            options = {"file_arch": model_path, 
-                        "file_weight": weights_path}
-            json_string = model.to_json()
-            open(options['file_arch'], 'w').write(json_string)
-            model.save_weights(options['file_weight'])
-
-        save(self.generator, "context_encoder_generator")
-        save(self.discriminator, "context_encoder_discriminator")
-    
-    def predict():
-        if not (self.generator is not None and self.discriminator is not None):
-            model_name=context_encoder_generator
-            model_path = "context_encoder/saved_model/%s.json" % model_name
-            weights_path = "context_encoder/saved_model/%s_weights.hdf5" % model_name
-            self.generator=load(model_path)
-            self.generator=load_weghts(model_path)
-            
             
 
 if __name__ == '__main__':
