@@ -18,77 +18,7 @@ class Weight_model():
         self.channels = 3
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
         self.missing_shape = (self.mask_width, self.mask_height, self.channels)
-
-    def build_generator_variational(self):
-
-
-        model = Sequential()
-
-        # Encoder
-        model.add(Conv2D(32, kernel_size=3, strides=2, input_shape=self.img_shape, padding="same"))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(BatchNormalization(momentum=0.8))
-        
-        model.add(Conv2D(64, kernel_size=3, strides=2, padding="same"))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(BatchNormalization(momentum=0.8))
-        
-        model.add(Dropout(0.5))
-        model.add(Conv2D(64, kernel_size=3, strides=2, padding="same"))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(BatchNormalization(momentum=0.8))
-        
-        model.add(Conv2D(128, kernel_size=3, strides=2, padding="same"))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(BatchNormalization(momentum=0.8))
-        
-        model.add(Conv2D(128, kernel_size=3, strides=3, padding="same"))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(BatchNormalization(momentum=0.8))
-
-        model.add(Conv2D(512, kernel_size=1, strides=1, padding="same"))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(Dropout(0.5))
-
-        # Decoder
-        #model.add(UpSampling2D(size=(3,3)))
-        model.add(Conv2D(256, kernel_size=3))
-        #model.add(LeakyReLU(alpha=0.2))
-        model.add(Activation('relu'))
-        
-        model.add(UpSampling2D(size=(3,3)))
-        model.add(Conv2D(256, kernel_size=3))
-        #model.add(LeakyReLU(alpha=0.2))
-        model.add(Activation('relu'))
-        
-        model.add(UpSampling2D())
-        model.add(Conv2D(128, kernel_size=3))
-        #model.add(LeakyReLU(alpha=0.2))
-        model.add(Activation('relu'))
-       
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(UpSampling2D())
-        model.add(Conv2D(64, kernel_size=3))
-        #model.add(LeakyReLU(alpha=0.2))
-        model.add(Activation('relu'))
-        
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(UpSampling2D())
-        model.add(Dropout(0.5))
-        model.add(Conv2D(32, kernel_size=3))
-        #model.add(LeakyReLU(alpha=0.2))
-        model.add(Activation('relu'))        
-        
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(Conv2D(self.channels, kernel_size=3))
-        model.add(Activation('tanh'))
-
-        model.summary()
-
-        masked_img = Input(shape=self.img_shape)
-        gen_missing = model(masked_img)
-
-        return Model(masked_img, gen_missing)
+   
     def build_generator_img_size(self):
         # 170 * 215 
 
