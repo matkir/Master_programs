@@ -12,8 +12,8 @@ from keras.utils import to_categorical
 import keras.backend as K
 import plotload
 import sys
-
-from selector import selector
+from cc_weights import Weight_model
+from selector import Selector
 import matplotlib.pyplot as plt
 
 import numpy as np
@@ -22,8 +22,9 @@ class CCgan():
     def __init__(self):
         self.img_rows = 576#8*64//2#32
         self.img_cols = 720#8*64//2#32
-        self.mask_width = 128#208
-        self.mask_height = 160#280
+        # mask idealy 170 * 215  
+        self.mask_width = 170#128#208
+        self.mask_height = 215#160#280
         self.channels = 3
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
         self.missing_shape = (self.mask_width, self.mask_height, self.channels)
@@ -40,31 +41,27 @@ class CCgan():
 
  
         # Build and compile the generator
-        self.generator = self.model.build_generator_img_size()
+        self.generator = self.model.build_generator()
         self.generator.compile(loss=['binary_crossentropy'],
             optimizer=optimizer)
 
         if '-weights' in sys.argv:
+            print("loading old weights")
             self.generator.load_weights("saved_model/generator_weigths.h5")
             self.discriminator.load_weights("saved_model/discriminator_weigths.h5")
-        # The generator takes noise as input and generates the missing
-        # part of the image
+        
         masked_img = Input(shape=self.img_shape)
-        gen_missing = self.generator(masked_img)
+        gen_img = self.generator(masked_img)
 
-        # For the combined model we will only train the generator
         self.discriminator.trainable = False
 
-        # The discriminator takes generated images as input and determines
-        # if it is generated or if it is a real image
-        valid = self.discriminator(gen_missing)
+        valid= self.discriminator(gen_img)
 
-        # The combined model  (stacked generator and discriminator) takes
-        # masked_img as input => generates missing image => determines validity
-        self.combined = Model(masked_img , [gen_missing, valid])
-        self.combined.compile(loss=['mse', 'binary_crossentropy'],
-            loss_weights=[0.999, 0.001],
-            optimizer=optimizer)
+        self.combined = Model(masked_img , valid)
+        self.combined.compile(loss=['mse'],
+                              optimizer=optimizer)
+        
+        
         if "-save" in sys.argv:
             self.generator.save("saved_model/generator.h5")
             self.discriminator.save("saved_model/discriminator.h5")        
@@ -83,48 +80,39 @@ class CCgan():
             missing_parts[i] = masked_img[_x1:_x2, _y1:_y2, :].copy()
             masked_img[_x1:_x2, _y1:_y2, :] = -1
             masked_imgs[i] = masked_img
+        return masked_imgs, missing_parts, (y1, y2, x1, x2)
     
-    def replace_spot(self, imgs,missing_parts):
-	
-        masked_imgs = np.empty_like(imgs)
-        missing_parts = np.empty((imgs.shape[0],self.mask_width,self.mask_height, self.channels))
-        for i, img in enumerate(imgs):
-            masked_img = img.copy()
-            _y1, _y2, _x1, _x2 = y1[i], y2[i], x1[i], x2[i]
-            missing_parts[i] = masked_img[_x1:_x2, _y1:_y2, :].copy()
-            masked_img[_x1:_x2, _y1:_y2, :] = -1
-            masked_imgs[i] = masked_img    
-        return imgs
-    
+    def combine(self,gen_part,org_img,coord):
+        org_copy=org_img.copy()
+        for i, img in enumerate(org_copy):
+            y1=coord[0][i]
+            y2=coord[1][i]
+            x1=coord[2][i]
+            x2=coord[3][i]
+            org_copy[i,x1:x2,y1:y2]=gen_part[i,x1:x2,y1:y2]
+        return org_copy
     
     
-    def train(self, epochs, batch_size=128, save_interval=50):
+    
+    def train(self, epochs, batch_size=2, save_interval=50):
         soft= True if '-soft' in sys.argv else False
-        numtimes=np.zeros(batch_size*5)
+        half_batch=batch_size//2
         for epoch in range(epochs):
-
-
-            # ---------------------
-            #  Train Discriminator
-            # ---------------------
             if epoch%100==0:
-                print(f"most used picture was traned on {max(numtimes)} times")
-                numtimes=np.zeros(batch_size*5)        
                 X_train=plotload.load_polyp_batch(self.img_shape, batch_size*5)
-            if epoch%50==0:
-                #after 50 itterations we flip the images, to make the set 2x times as large. sorry for not vectorizing
-                for i in range(batch_size):
-                    X_train[i]=np.fliplr(X_train[i])
-            
+
+
+
             
             idx = np.random.randint(0, X_train.shape[0], half_batch)
             imgs = X_train[idx]
 
-            numtimes[idx]+=1 #to count num of times each pic was trained on
 
-            masked_imgs, missing, _ = self.mask_randomly(imgs)
+            masked_imgs, missing, coords = self.mask_randomly(imgs)
             gen_missing = self.generator.predict(masked_imgs)
 
+
+            # SPESSSIELLE TING
             if soft:
                 valid = 0.2*np.random.random_sample((half_batch,1))+0.9
                 fake = 0.1*np.random.random_sample((half_batch,1))
@@ -132,7 +120,7 @@ class CCgan():
                 valid = np.ones((half_batch, 1))
                 fake = np.zeros((half_batch, 1))
 
-            if epoch%120==0:
+            if epoch%120==0 and epoch!=0:
                 #small shakeup to get out of local minimas
                 placeholder=valid
                 valid=fake
@@ -140,8 +128,10 @@ class CCgan():
 
 
             # Train the discriminator
-            d_loss_real = self.discriminator.train_on_batch(missing, valid)
-            d_loss_fake = self.discriminator.train_on_batch(gen_missing, fake)
+            d_loss_real = self.discriminator.train_on_batch(imgs, valid)
+            #splising fake imgs
+            fake_part=self.combine(gen_missing, imgs, coords)
+            d_loss_fake = self.discriminator.train_on_batch(fake_part, fake)
             d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
 
             # ---------------------
@@ -158,14 +148,14 @@ class CCgan():
             valid = np.ones((batch_size, 1))
 
             # Train the generator
-            g_loss = self.combined.train_on_batch(masked_imgs, [missing_parts, valid])
+            g_loss = self.combined.train_on_batch(imgs, valid)
 
             # Plot the progress
             print ("%d [D loss: %f, acc: %.2f%%] [G loss: %f, mse: %f]" % (epoch, d_loss[0], 100*d_loss[1], g_loss[0], g_loss[1]))
 
-            # If at save interval => save generated image samples
+            
+            
             if epoch % sample_interval == 0:
-                # Select a random half batch of images
                 idx = np.random.randint(0, X_train.shape[0], 6)
                 imgs = X_train[idx]
                 self.sample_images(epoch, imgs)
@@ -202,8 +192,8 @@ class CCgan():
             
 
 if __name__ == '__main__':
-    context_encoder = ContextEncoder()
-    context_encoder.train(epochs=30000, batch_size=64, save_interval=50)
+    cc = CCgan()
+    cc.train(epochs=30000, batch_size=2, save_interval=50)
 
 
 
