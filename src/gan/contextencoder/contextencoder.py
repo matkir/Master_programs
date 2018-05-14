@@ -46,6 +46,7 @@ class ContextEncoder():
             optimizer=optimizer)
 
         if '-weights' in sys.argv:
+            print("loading old weights")
             self.generator.load_weights("saved_model/generator_weigths.h5")
             self.discriminator.load_weights("saved_model/discriminator_weigths.h5")
         # The generator takes noise as input and generates the missing
