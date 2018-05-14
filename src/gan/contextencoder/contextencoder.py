@@ -1,6 +1,5 @@
 from __future__ import print_function, division
 
-from keras.datasets import cifar10
 from keras.layers import Input, Dense, Reshape, Flatten, Dropout, multiply, GaussianNoise
 from keras.layers import BatchNormalization, Activation, Embedding, ZeroPadding2D
 from keras.layers import MaxPooling2D
@@ -12,6 +11,7 @@ from keras import losses
 from keras.utils import to_categorical
 import keras.backend as K
 import sys
+from context_weights import Weight_model
 
 import matplotlib
 matplotlib.use('Agg')
@@ -23,23 +23,25 @@ class ContextEncoder():
     def __init__(self):
         self.img_rows = 576#8*64//2#32
         self.img_cols = 720#8*64//2#32
-        self.mask_width = 208#350 #self.img_rows//4 #8*16//2#8
-        self.mask_height = 280#300 #self.img_cols//4#8*16//2#8
+        self.mask_width = 128#208
+        self.mask_height = 160#280
         self.channels = 3
-        self.num_classes = 2
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
         self.missing_shape = (self.mask_width, self.mask_height, self.channels)
+        self.model=Weight_model(self.img_rows, self.img_cols, self.mask_width,self.mask_height)
 
         optimizer = Adam(0.0002, 0.5)
-
-        # Build and compile the discriminator
-        self.discriminator = self.build_discriminator()
+        
+        #Build and compile the discriminator
+        #self.discriminator = self.build_discriminator()
+        self.discriminator = self.model.build_discriminator()
         self.discriminator.compile(loss='binary_crossentropy',
             optimizer=optimizer,
             metrics=['accuracy'])
 
         # Build and compile the generator
-        self.generator = self.build_generator_img_size()
+        #self.generator = self.build_generator_img_size()
+        self.generator = self.model.build_generator_img_size()
         self.generator.compile(loss=['binary_crossentropy'],
             optimizer=optimizer)
 
