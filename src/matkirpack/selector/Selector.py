@@ -147,7 +147,7 @@ def get_coord_live(adr='2.jpg',scale=1,img_rows=576,img_cols=720,mask_height=208
         missing_parts = np.ndarray(shape=(x2-x1,y2-y1))
         masked_img = img.copy()
         missing_parts =masked_img[y1:y2, x1:x2,:].copy()
-        masked_img[y1:y2, x1:x2,:] = 0
+        masked_img[y1:y2, x1:x2,:] = -1
         guess=np.squeeze(generator.predict(np.expand_dims(masked_img,axis=0)),axis=0)  
         masked_img[y1:y2, x1:x2,:] = guess
 
