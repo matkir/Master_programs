@@ -57,10 +57,10 @@ class CCgan():
 
         valid= self.discriminator(gen_img)
 
-        self.combined = Model(masked_img , valid)
-        self.combined.compile(loss=['mse'],
-                              optimizer=optimizer)
-        
+        self.combined = Model(masked_img , [gen_img, valid])
+        self.combined.compile(loss=['mse', 'binary_crossentropy'],
+            loss_weights=[0.999, 0.001],
+            optimizer=optimizer)        
         
         if "-save" in sys.argv:
             self.generator.save("saved_model/generator.h5")
@@ -141,14 +141,13 @@ class CCgan():
             # Select a random half batch of images
             idx = np.random.randint(0, X_train.shape[0], batch_size)
             imgs = X_train[idx]
-
+            
             masked_imgs, missing_parts, _ = self.mask_randomly(imgs)
-
-            # Generator wants the discriminator to label the generated images as valid
+            
             valid = np.ones((batch_size, 1))
 
             # Train the generator
-            g_loss = self.combined.train_on_batch(imgs, valid)
+            g_loss = self.combined.train_on_batch(masked_imgs, [imgs, valid])
 
             # Plot the progress
             print ("%d [D loss: %f, acc: %.2f%%] [G loss: %f, mse: %f]" % (epoch, d_loss[0], 100*d_loss[1], g_loss[0], g_loss[1]))
