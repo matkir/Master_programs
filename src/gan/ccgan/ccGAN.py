@@ -192,7 +192,7 @@ class CCgan():
 
 if __name__ == '__main__':
     cc = CCgan()
-    cc.train(epochs=30000, batch_size=2, save_interval=50)
+    cc.train(epochs=30000, batch_size=2, sample_interval=50)
 
 
 
