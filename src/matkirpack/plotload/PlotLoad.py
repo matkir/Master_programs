@@ -137,7 +137,7 @@ def load_one_img(img_shape,dest=None,crop=True,glare=True):
         save=_crop_img(save,gray)
     if glare:
         save=_reduce_glare(save)
-    save=cv2.resize(save,(img_shape[1],img_shape[0]))
+    save=cv2.resize(save,(img_shape[0],img_shape[1]))
     data = (save.astype(np.float32) - 127.5) / 127.5
     return data,img
 
