@@ -35,20 +35,21 @@ class CCgan():
 
         #Build and compile the discriminator
         self.discriminator = self.model.build_discriminator()
-        self.discriminator.compile(loss='binary_crossentropy',
-                                   optimizer=optimizer,
-            metrics=['accuracy'])
-
+        
 
         # Build and compile the generator
         self.generator = self.model.build_generator()
-        self.generator.compile(loss=['binary_crossentropy'],
-                               optimizer=optimizer)
-
+       
         if '-weights' in sys.argv:
             print("loading old weights")
             self.generator.load_weights("saved_model/generator_weigths.h5")
             self.discriminator.load_weights("saved_model/discriminator_weigths.h5")
+            
+        self.discriminator.compile(loss='binary_crossentropy',
+                                   optimizer=optimizer,
+                                   metrics=['accuracy'])
+        self.generator.compile(loss=['binary_crossentropy'],
+                               optimizer=optimizer)
 
         masked_img = Input(shape=self.img_shape)
         gen_img = self.generator(masked_img)
@@ -107,6 +108,11 @@ class CCgan():
             idx = np.random.randint(0, X_train.shape[0], half_batch)
             imgs = X_train[idx]
 
+            #TMP
+            idx = np.random.randint(0, X_train.shape[0], 6)
+            imgs = X_train[idx]
+            self.sample_images(epoch, imgs)
+            print("DONE")
 
             masked_imgs, missing, coords = self.mask_randomly(imgs)
             gen_missing = self.generator.predict(masked_imgs)
@@ -192,7 +198,7 @@ class CCgan():
 
 if __name__ == '__main__':
     cc = CCgan()
-    cc.train(epochs=30000, batch_size=2, sample_interval=50)
+    cc.train(epochs=30000, batch_size=2, save_interval=500)
 
 
 
