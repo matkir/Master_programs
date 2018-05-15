@@ -94,7 +94,7 @@ class CCgan():
     
     
     
-    def train(self, epochs, batch_size=2, save_interval=50):
+    def train(self, epochs, batch_size=2, sample_interval=50):
         soft= True if '-soft' in sys.argv else False
         half_batch=batch_size//2
         for epoch in range(epochs):
@@ -154,35 +154,9 @@ class CCgan():
 
             
             
-            if epoch % sample_interval == 0:
-                idx = np.random.randint(0, X_train.shape[0], 6)
-                imgs = X_train[idx]
-                self.sample_images(epoch, imgs)
             if epoch % (sample_interval*5) == 0:
                 self.save_model() 
 
-    def sample_images(self, epoch, imgs):
-        r, c = 3, 6
-
-        masked_imgs, missing_parts, (y1, y2, x1, x2) = self.mask_randomly(imgs)
-        gen_missing = self.generator.predict(masked_imgs)
-
-        imgs = 0.5 * imgs + 0.5
-        masked_imgs = 0.5 * masked_imgs + 0.5
-        gen_missing = 0.5 * gen_missing + 0.5
-
-        fig, axs = plt.subplots(r, c)
-        for i in range(c):
-            axs[0,i].imshow(imgs[i, :,:])
-            axs[0,i].axis('off')
-            axs[1,i].imshow(masked_imgs[i, :,:])
-            axs[1,i].axis('off')
-            filled_in = imgs[i].copy()
-            filled_in[x1[i]:x2[i], y1[i]:y2[i], :] = gen_missing[i]
-            axs[2,i].imshow(filled_in)
-            axs[2,i].axis('off')
-        fig.savefig("images/cc_%d.png" % epoch)
-        plt.close()
 
     def save_model(self):
         self.generator.save_weights("saved_model/generator_weigths.h5")
@@ -192,7 +166,7 @@ class CCgan():
 
 if __name__ == '__main__':
     cc = CCgan()
-    cc.train(epochs=30000, batch_size=2, save_interval=50)
+    cc.train(epochs=30000, batch_size=10, sample_interval=50)
 
 
 
