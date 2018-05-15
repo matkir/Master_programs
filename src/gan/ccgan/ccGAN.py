@@ -103,16 +103,8 @@ class CCgan():
                 X_train=plotload.load_polyp_batch(self.img_shape, batch_size*5)
 
 
-
-
             idx = np.random.randint(0, X_train.shape[0], half_batch)
             imgs = X_train[idx]
-
-            #TMP
-            idx = np.random.randint(0, X_train.shape[0], 6)
-            imgs = X_train[idx]
-            self.sample_images(epoch, imgs)
-            print("DONE")
 
             masked_imgs, missing, coords = self.mask_randomly(imgs)
             gen_missing = self.generator.predict(masked_imgs)
@@ -160,11 +152,11 @@ class CCgan():
 
 
 
-            if epoch % sample_interval == 0:
+            if epoch % save_interval == 0:
                 idx = np.random.randint(0, X_train.shape[0], 6)
                 imgs = X_train[idx]
                 self.sample_images(epoch, imgs)
-            if epoch % (sample_interval*5) == 0:
+            if epoch % (save_interval*5) == 0:
                 self.save_model() 
 
     def sample_images(self, epoch, imgs):
@@ -181,10 +173,10 @@ class CCgan():
         for i in range(c):
             axs[0,i].imshow(imgs[i, :,:])
             axs[0,i].axis('off')
-            axs[1,i].imshow(masked_imgs[i, :,:])
+            axs[1,i].imshow(gen_missing[i, :,:])
             axs[1,i].axis('off')
             filled_in = imgs[i].copy()
-            filled_in[x1[i]:x2[i], y1[i]:y2[i], :] = gen_missing[i]
+            filled_in[x1[i]:x2[i], y1[i]:y2[i], :] = gen_missing[i,x1[i]:x2[i],y1[i]:y2[i]]
             axs[2,i].imshow(filled_in)
             axs[2,i].axis('off')
         fig.savefig("images/cc_%d.png" % epoch)
@@ -198,7 +190,7 @@ class CCgan():
 
 if __name__ == '__main__':
     cc = CCgan()
-    cc.train(epochs=30000, batch_size=2, save_interval=500)
+    cc.train(epochs=30000, batch_size=10, save_interval=50)
 
 
 
