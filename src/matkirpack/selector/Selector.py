@@ -362,6 +362,7 @@ def gui(adr='2.jpg',scale=1,img_rows=720,img_cols=576,mask_height=208,mask_width
         screen, px = _gui_setup('tmp.png',1,buttons)            
         mask_array, going = _gui_mainLoop(screen, px,buttons,img_shape=img_shape)
         print(mask_array)
+        scipy.misc.toimage(mask_array, cmin=-1, cmax=1).save('tmp.png') 
     pygame.quit()            
             
             
