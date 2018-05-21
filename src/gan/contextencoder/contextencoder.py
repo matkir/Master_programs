@@ -21,10 +21,10 @@ import numpy as np
 
 class ContextEncoder():
     def __init__(self):
-        self.img_rows = 720#8*64//2#32
-        self.img_cols = 576#8*64//2#32
-        self.mask_width = 160#208
-        self.mask_height = 128#280
+        self.img_rows = 720//4#8*64//2#32
+        self.img_cols = 576//4#8*64//2#32
+        self.mask_width = 48#208
+        self.mask_height = 32#280
         self.channels = 3
         self.img_shape = (self.img_cols, self.img_rows, self.channels)
         self.missing_shape = (self.mask_height, self.mask_width, self.channels)
@@ -109,8 +109,8 @@ class ContextEncoder():
                 masked_imgs, missing, _ = ms.mask_green_corner(imgs)
             else:
                 masked_imgs, missing, _ = ms.mask_randomly_square(imgs, 
-                    self.mask_width, 
-                    self.mask_height)
+                    self.mask_height, 
+                    self.mask_width)
 
             # Generate a half batch of new images
             gen_missing = self.generator.predict(masked_imgs)
@@ -140,9 +140,9 @@ class ContextEncoder():
             imgs = X_train[idx]
     
             if corner:
-                masked_imgs, missing_parts, _ = self.mask_cornerly(imgs)
+                masked_imgs, missing_parts, _ = ms.mask_green_corner(imgs)
             else:
-                masked_imgs, missing_parts, _ = self.mask_randomly(imgs)
+                masked_imgs, missing_parts, _ = ms.mask_randomly_square(imgs,self.mask_height,self.mask_width)
                 
             # Generator wants the discriminator to label the generated images as valid
             valid = np.ones((batch_size, 1))
@@ -164,7 +164,7 @@ class ContextEncoder():
     def sample_images(self, epoch, imgs):
         r, c = 3, 6
 
-        masked_imgs, missing_parts, (y1, y2, x1, x2) = self.mask_randomly(imgs)
+        masked_imgs, missing_parts, (y1, y2, x1, x2) = ms.mask_randomly_square(imgs,self.mask_height,self.mask_width)
         gen_missing = self.generator.predict(masked_imgs)
 
         imgs = 0.5 * imgs + 0.5
@@ -191,5 +191,5 @@ class ContextEncoder():
 
 if __name__ == '__main__':
     context_encoder = ContextEncoder()
-    context_encoder.train(epochs=90000, batch_size=32, sample_interval=50)
+    context_encoder.train(epochs=90000, batch_size=4, sample_interval=50)
 

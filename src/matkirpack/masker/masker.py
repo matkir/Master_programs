@@ -4,7 +4,7 @@ import pygame, sys
 from PIL import Image 
 
 
-def mask_randomly_square(imgs,mask_width,mask_height,mask_val=0):
+def mask_randomly_square(imgs,mask_height,mask_width,mask_val=0):
     """
     Mask randomly sqare takes a series of images (num images,image rows, image cols,channels) and masks an area with the chosen val
     :param imgs: list of imgs
@@ -14,18 +14,19 @@ def mask_randomly_square(imgs,mask_width,mask_height,mask_val=0):
     :return: (The masked imgs,the part that is removed,pos of the removed part)
     """
     
-    img_num,img_rows,img_cols,img_channels=imgs.shape
-    y1 = np.random.randint(0, img_cols - mask_height, img_num)
-    y2 = y1 + mask_height
-    x1 = np.random.randint(0, img_rows - mask_width, img_num)
-    x2 = x1 + mask_width
+    img_num,img_cols,img_rows,img_channels=imgs.shape
+    x1 = np.random.randint(0, img_cols - mask_height, img_num)
+    x2 = x1 + mask_height
+    y1 = np.random.randint(0, img_rows - mask_width, img_num)
+    y2 = y1 + mask_width
     
     masked_imgs = np.empty_like(imgs)
-    missing_parts = np.empty((imgs.shape[0],mask_width,mask_height, img_channels))
+    missing_parts = np.empty((imgs.shape[0],mask_height,mask_width, img_channels))
     for i, img in enumerate(imgs):
         masked_img = img.copy()
         _y1, _y2, _x1, _x2 = y1[i], y2[i], x1[i], x2[i]
-        missing_parts[i] = masked_img[_x1:_x2, _y1:_y2, :].copy()
+        tmp=masked_img.copy()
+        missing_parts[i] = tmp[_x1:_x2, _y1:_y2, :]
         masked_img[_x1:_x2, _y1:_y2, :] = mask_val
         masked_imgs[i] = masked_img
 
@@ -84,7 +85,7 @@ if __name__=='__main__':
     import plotload as pl
     import matplotlib.pyplot as plt  
     img=pl.load_polyp_batch((576,720,3),5,data_type="green",rot=False)
-    #a,b,c=mask_randomly_square(img, 100, 100)
+    #a,b,c=mask_randomly_square(img, 20, 100)
     #a,b,c=mask_green_corner(img)
     a,b=mask_from_template(img)
     plt.imshow(0.5*b[0]+0.5)

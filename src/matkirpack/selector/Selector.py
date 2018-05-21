@@ -386,8 +386,7 @@ def make_mask(save=False):
     
 if __name__=='__main__':
     #gui()
-    for _ in range(10):
-        make_mask(save=True)
+    make_mask(save=True)
     #import matplotlib.pyplot as plt
     #plt.imshow(make_mask(True))
     #plt.show()
