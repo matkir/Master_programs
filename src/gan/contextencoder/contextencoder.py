@@ -12,7 +12,7 @@ from keras.utils import to_categorical
 import keras.backend as K
 import sys
 from context_weights import Weight_model
-
+import masker as ms
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -21,14 +21,14 @@ import numpy as np
 
 class ContextEncoder():
     def __init__(self):
-        self.img_rows = 576#8*64//2#32
-        self.img_cols = 720#8*64//2#32
-        self.mask_width = 128#208
-        self.mask_height = 160#280
+        self.img_rows = 720#8*64//2#32
+        self.img_cols = 576#8*64//2#32
+        self.mask_width = 160#208
+        self.mask_height = 128#280
         self.channels = 3
-        self.img_shape = (self.img_rows, self.img_cols, self.channels)
-        self.missing_shape = (self.mask_width, self.mask_height, self.channels)
-        self.model=Weight_model(self.img_rows, self.img_cols, self.mask_width,self.mask_height)
+        self.img_shape = (self.img_cols, self.img_rows, self.channels)
+        self.missing_shape = (self.mask_height, self.mask_width, self.channels)
+        self.model=Weight_model(self.img_cols, self.img_rows, self.mask_height,self.mask_width)
 
         optimizer = Adam(0.0002, 0.5)
         
@@ -72,39 +72,6 @@ class ContextEncoder():
             self.discriminator.save("saved_model/discriminator.h5")
 
 
-    def mask_randomly(self, imgs):
-        y1 = np.random.randint(0, self.img_cols - self.mask_height, imgs.shape[0])
-        y2 = y1 + self.mask_height
-        x1 = np.random.randint(0, self.img_rows - self.mask_width, imgs.shape[0])
-        x2 = x1 + self.mask_width
-	
-        masked_imgs = np.empty_like(imgs)
-        missing_parts = np.empty((imgs.shape[0],self.mask_width,self.mask_height, self.channels))
-        for i, img in enumerate(imgs):
-            masked_img = img.copy()
-            _y1, _y2, _x1, _x2 = y1[i], y2[i], x1[i], x2[i]
-            missing_parts[i] = masked_img[_x1:_x2, _y1:_y2, :].copy()
-            masked_img[_x1:_x2, _y1:_y2, :] = -1
-            masked_imgs[i] = masked_img
-
-        return masked_imgs, missing_parts, (y1, y2, x1, x2)
-    def mask_cornerly(self, imgs):
-        y1 = np.random.randint(3*self.img_cols//4, self.img_cols - self.mask_height, imgs.shape[0])
-        y2 = y1 + self.mask_height
-        x1 = np.random.randint(0, self.img_rows//4 - self.mask_width, imgs.shape[0])
-        x2 = x1 + self.mask_width
-	
-        masked_imgs = np.empty_like(imgs)
-        missing_parts = np.empty((imgs.shape[0],self.mask_width,self.mask_height, self.channels))
-        for i, img in enumerate(imgs):
-            masked_img = img.copy()
-            _y1, _y2, _x1, _x2 = y1[i], y2[i], x1[i], x2[i]
-            missing_parts[i] = masked_img[_x1:_x2, _y1:_y2, :].copy()
-            masked_img[_x1:_x2, _y1:_y2, :] = -1
-            masked_imgs[i] = masked_img
-
-        return masked_imgs, missing_parts, (y1, y2, x1, x2)
-
 
     def train(self, epochs, batch_size=128, sample_interval=50):
         half_batch = int(batch_size / 2)
@@ -139,9 +106,11 @@ class ContextEncoder():
             numtimes[idx]+=1 #to count num of times each pic was trained on
             
             if corner:    
-                masked_imgs, missing, _ = self.mask_cornerly(imgs)
+                masked_imgs, missing, _ = ms.mask_green_corner(imgs)
             else:
-                masked_imgs, missing, _ = self.mask_randomly(imgs)
+                masked_imgs, missing, _ = ms.mask_randomly_square(imgs, 
+                    self.mask_width, 
+                    self.mask_height)
 
             # Generate a half batch of new images
             gen_missing = self.generator.predict(masked_imgs)

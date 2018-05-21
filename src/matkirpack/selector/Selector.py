@@ -2,7 +2,8 @@ import scipy.misc
 import plotload as pl
 import numpy as np
 import pygame, sys 
-from PIL import Image 
+from PIL import Image
+import os
 """
 Code inspired from:
 https://stackoverflow.com/questions/6136588/image-cropping-using-python/8696558
@@ -179,13 +180,18 @@ def _gui_setup(path,scale,buttons):
 
 
 def _gui_mainLoop(screen, px,buttons,img_shape=(720,576)):
+    """
+    WARNING; This is following np stanadrd of rows/cols, not my style
+    """
     button0,button1,button2,button3=buttons
     going=True
     startpos = endpos = prior = None
     n=0
     brushes={"pen":1,"rightSizeBox":2,"dragBox":3}
     brush=1
-    mask_array=np.zeros(shape=img_shape[:2])
+    img_col=img_shape[0]
+    img_row=img_shape[1]
+    mask_array=np.zeros(shape=(img_col,img_row))
     done=True
     while n!=1:
         for event in pygame.event.get():
@@ -212,6 +218,7 @@ def _gui_mainLoop(screen, px,buttons,img_shape=(720,576)):
                         going=False
                         return mask_array,going
                 else:
+                    #if dragtools is used
                     if done==2:
                         mask_array[tmp_mask[0]:tmp_mask[1],tmp_mask[2]:tmp_mask[3]]=1
                         done=True
@@ -336,24 +343,26 @@ def get_coord_live(adr='2.jpg',scale=1,img_rows=576,img_cols=720,mask_height=208
         
     pygame.display.quit()
 
-def gui(adr='2.jpg',scale=1,img_rows=720,img_cols=576,mask_height=208,mask_width=280):
+def gui(adr='2.jpg',scale=1,img_rows=720,img_cols=576):
+    """
+    gui is a full gui program that takes an image as input, and gives the user the option to make its own mask
+    """
     channels = 3
+    """
+    WARNING; here img shape is 720,576. this is trasposed of the rest of the program
+    """
     img_shape = (img_rows, img_cols, channels)
 
-    #from keras.models import load_model
-    #generator = load_model("saved_model/generator.h5")
-    #generator.load_weights("saved_model/generator_weigths.h5")
-    
 
-    img,img_path=pl.load_one_img(img_shape, dest=adr)
+    img,img_path=pl.load_one_img((img_cols,img_rows,channels))
     scipy.misc.toimage(img, cmin=-1, cmax=1).save('tmp.png')            
     
     #starting window, and adding buttons
     pygame.init()
-    button0=pygame.Rect(img_shape[0]+25,0 ,50,50)    
-    button1=pygame.Rect(img_shape[0]+25,100,50,50)    
-    button2=pygame.Rect(img_shape[0]+25,200,50,50)    
-    button3=pygame.Rect(img_shape[0]+25,300,50,50)
+    button0=pygame.Rect(img_rows+25,0 ,50,50)    
+    button1=pygame.Rect(img_rows+25,100,50,50)    
+    button2=pygame.Rect(img_rows+25,200,50,50)    
+    button3=pygame.Rect(img_rows+25,300,50,50)
     buttons=[button0,button1,button2,button3]
     global going 
     going=True
@@ -361,11 +370,25 @@ def gui(adr='2.jpg',scale=1,img_rows=720,img_cols=576,mask_height=208,mask_width
         img,img_path=pl.load_one_img(img_shape, dest='tmp.png')
         screen, px = _gui_setup('tmp.png',1,buttons)            
         mask_array, going = _gui_mainLoop(screen, px,buttons,img_shape=img_shape)
-        print(mask_array)
-        scipy.misc.toimage(mask_array, cmin=-1, cmax=1).save('tmp.png') 
-    pygame.quit()            
-            
-            
+        scipy.misc.toimage(mask_array.T, cmin=-1, cmax=1).save('tmp.png') 
+    pygame.quit()
+    return mask_array
+
+def make_mask(save=False):
+    import uuid
+    mask=gui()
+    if save:
+        unique_filename = str(uuid.uuid4())
+        folder=os.path.expanduser("~")
+        folder=folder+"/Documents/kvasir-dataset-v2/templates/" +unique_filename+'.npy'   
+        np.save(folder, mask.T)
+    return mask.T
+    
 if __name__=='__main__':
-    gui()
+    #gui()
+    for _ in range(10):
+        make_mask(save=True)
+    #import matplotlib.pyplot as plt
+    #plt.imshow(make_mask(True))
+    #plt.show()
     

@@ -31,21 +31,35 @@ def _crop_img(input_img,gray,tol=20,erosion=True):
     mask = gray>tol
     return input_img[np.ix_(mask.any(1),mask.any(0))]
 
+def _find_folder(data_type):
+    """
+    Finds the folder used from the datatype
+    :param data_type: path in kvasir
+    :return: abs path to folder
+    """
+    if data_type==None:
+        folder=os.path.expanduser("~")
+        folder=folder+"/Documents/kvasir-dataset-v2/none/"
+    elif type(data_type) == str:
+        folder=os.path.expanduser("~")
+        folder=folder+"/Documents/kvasir-dataset-v2/"+data_type+"/"
+        if not os.path.isdir(folder):
+            folder=os.path.expanduser("~")
+            folder=folder+"/Documents/kvasir-dataset-v2/blanding/"
+    else:
+        folder=os.path.expanduser("~")
+        folder=folder+"/Documents/kvasir-dataset-v2/blanding/"
+    return folder
+
+
 def load_polyp_data(img_shape,data_type=None,rot=False,crop=True,glare=False):
     """
     Loads the polyp data
     """
     if '-l' in sys.argv:
         return np.load("train_data.npy")
-    import os
-    if data_type==None:
-        folder=os.path.expanduser("~")
-        folder=folder+"/Documents/kvasir-dataset-v2/none"
-        #folder ='../../../../../kvasir-dataset-v2/none' #TODO MAKE STATIC
-    else:
-        folder=os.path.expanduser("~")
-        folder=folder+"/Documents/kvasir-dataset-v2/blanding"
-        #folder ='../../../../../kvasir-dataset-v2/blanding' #TODO MAKE STATIC
+    
+    folder=_find_folder(data_type)
     
     if rot:
         #Rot takes 4 times as many pics
@@ -72,7 +86,6 @@ def load_polyp_data(img_shape,data_type=None,rot=False,crop=True,glare=False):
         else:    
             data[i]=save
             i+=1
-    #data=np.random.permutation(data)
     data = (data.astype(np.float32) - 127.5) / 127.5
     np.save("train_data.npy", data)
     return data
@@ -82,16 +95,8 @@ def load_polyp_batch(img_shape,batch_size,data_type=None,rot=False,crop=True,gla
     """
     Loads the polyp data, in a for of random images from a batch
     """
-    import os
-    if data_type==None:
-        folder=os.path.expanduser("~")
-        folder=folder+"/Documents/kvasir-dataset-v2/none"
-        #folder ='../../../../../kvasir-dataset-v2/none' #TODO MAKE STATIC
-    else:
-        folder=os.path.expanduser("~")
-        folder=folder+"/Documents/kvasir-dataset-v2/blanding"
-        #folder ='../../../../../kvasir-dataset-v2/blanding' #TODO MAKE STATIC
-    
+   
+    folder = _find_folder(data_type)
     data=np.ndarray(shape=(batch_size, img_shape[0], img_shape[1], img_shape[2]),dtype=np.int32)
 
     i=0
@@ -122,14 +127,9 @@ def load_one_img(img_shape,dest=None,crop=True,glare=True):
     """
     Loads a spessific img, or random if non declared
     """
-    import os
-    if dest==None:
-        folder=os.path.expanduser("~")
-        folder=folder+"/Documents/kvasir-dataset-v2/green/"
-        img=folder+np.random.choice(os.listdir(folder),1)[0]
-    else:
-        img=dest
-        
+    
+    folder =_find_folder(dest)
+    img=folder+np.random.choice(os.listdir(folder),1)[0]    
     
     save=cv2.cvtColor(cv2.imread(img), cv2.COLOR_BGR2RGB)
     gray = cv2.cvtColor(cv2.imread(img),cv2.COLOR_BGR2GRAY)
@@ -137,13 +137,38 @@ def load_one_img(img_shape,dest=None,crop=True,glare=True):
         save=_crop_img(save,gray)
     if glare:
         save=_reduce_glare(save)
-    save=cv2.resize(save,(img_shape[0],img_shape[1]))
+    save=cv2.resize(save,(img_shape[1],img_shape[0]))
     data = (save.astype(np.float32) - 127.5) / 127.5
     return data,img
 
+
+def load_single_template(img_shape,dest='templates',fliplr=True,flipud=True,rot=True):
+    folder=_find_folder(dest)
+    arr=folder+np.random.choice(os.listdir(folder),1)[0]
+    arr=np.load(arr)
+    #remember that numpy takes [x,y], but img_shape is [y,x,channel]
+    if arr.shape[0]!=img_shape[1]:
+        arr=cv2.resize(arr,(img_shape[1],img_shape[0]))
+    if fliplr and np.random.choice([True, False]):
+        arr=np.fliplr(arr) 
+    if flipud and np.random.choice([True, False]):
+        arr=np.flipud(arr)
+    if rot:
+        M = cv2.getRotationMatrix2D((img_shape[1]/2,img_shape[0]/2),np.random.randint(360),1)
+        arr = cv2.warpAffine(arr,M,(img_shape[1],img_shape[0]))        
+    return arr
         
 
+       
+
 if __name__=='__main__':
-    a=load_polyp_batch((500,500,3), 100, rot=True)
-    a=load_one_img((1000,1000,3))
+    a=load_one_img((576,720,3))
+    plt.imshow(0.5*a[0]+0.5)
+    plt.show()    
+    a=load_polyp_batch((576,720,3), 100, rot=False)
+    plt.imshow(0.5*a[0]+0.5)
+    plt.show()    
+    a=load_polyp_data((576//2,720//2,3),data_type="polyps")
+    plt.imshow(0.5*a[0]+0.5)
+    plt.show()    
     print()
