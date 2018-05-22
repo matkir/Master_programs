@@ -15,7 +15,7 @@ def main(adr='2.jpg',scale=1,img_cols=576,img_rows=720):
     generator.load_weights("saved_model/generator_weigths.h5")
     
   
-    img,img_path=pl.load_one_img(img_shape)
+    img,img_path=pl.load_one_img(img_shape,'1.jpg')
     scipy.misc.toimage(img, cmin=-1, cmax=1).save('working_img.png')            
     global going 
     going=True

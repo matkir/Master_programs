@@ -41,7 +41,7 @@ def _find_folder(data_type):
         folder=os.path.expanduser("~")
         folder=folder+"/Documents/kvasir-dataset-v2/none/"
     elif type(data_type) == str:
-        if '.png' in data_type:
+        if '.png' in data_type or '.jpg' in data_type:
             return data_type
         if data_type[0]=='/':
             return data_type
@@ -133,7 +133,7 @@ def load_one_img(img_shape,dest=None,crop=True,glare=True):
     """
     
     folder =_find_folder(dest)
-    if not '.png' in folder:
+    if not '.png' in folder and not '.jpg' in folder:
         img=folder+np.random.choice(os.listdir(folder),1)[0]    
     else:
         img=folder
