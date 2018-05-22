@@ -4,7 +4,7 @@ https://github.com/eriklindernoren/Keras-GAN/blob/master/ccgan/ccgan.py
 from keras.layers import Input, Dense, Reshape, Flatten, Dropout, multiply, GaussianNoise
 from keras.layers import BatchNormalization, Activation, Embedding, ZeroPadding2D
 from keras_contrib.layers.normalization import InstanceNormalization
-from keras.layers import MaxPooling2D, AveragePooling2D, Concatenate
+from keras.layers import MaxPooling2D, AveragePooling2D, Concatenate, GaussianNoise
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers.convolutional import UpSampling2D, Conv2D
 from keras.models import Sequential, Model
@@ -22,8 +22,8 @@ class Weight_model():
         self.channels = 3
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
         self.missing_shape = (self.mask_width, self.mask_height, self.channels)
-        self.gf=32
-        self.df=32
+        self.gf=32//2
+        self.df=32//2
         
         
     def build_generator(self):
@@ -44,13 +44,24 @@ class Weight_model():
             if dropout_rate:
                 u = Dropout(dropout_rate)(u)
             u = BatchNormalization(momentum=0.8)(u)
-            u = Concatenate()([u, skip_input])
             return u
-
+        #def deconv2d(layer_input, skip_input, filters, f_size=4, dropout_rate=0):
+            #"""Layers used during upsampling"""
+            #u = UpSampling2D(size=2)(layer_input)
+            #u = Conv2D(filters, kernel_size=f_size, strides=1, padding='same', activation='relu')(u)
+            #if dropout_rate:
+            #    u = Dropout(dropout_rate)(u)
+            #u = BatchNormalization(momentum=0.8)(u)
+            #u = Concatenate()([u, skip_input])
+            #return u
+        
         img = Input(shape=self.img_shape)
-
+        #adding gausian noise, might not be the right way to do it?
+        noise = GaussianNoise(0.01)(img)
+        
+        
         # Downsampling
-        d1 = conv2d(img, self.gf, bn=False)
+        d1 = conv2d(noise, self.gf, bn=False)
         d2 = conv2d(d1, self.gf*2)
         d3 = conv2d(d2, self.gf*4)
         d4 = conv2d(d3, self.gf*8)

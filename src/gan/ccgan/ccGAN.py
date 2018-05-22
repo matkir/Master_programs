@@ -14,6 +14,7 @@ import plotload
 import sys
 from cc_weights import Weight_model
 from selector import Selector
+from masker import mask_from_template,mask_randomly_square,mask_green_corner,combine_imgs_with_mask
 import matplotlib.pyplot as plt
 
 import numpy as np
@@ -33,11 +34,7 @@ class CCgan():
         optimizer = Adam(0.0002, 0.5)
 
 
-        #Build and compile the discriminator
         self.discriminator = self.model.build_discriminator()
-        
-
-        # Build and compile the generator
         self.generator = self.model.build_generator()
        
         if '-weights' in sys.argv:
@@ -48,7 +45,7 @@ class CCgan():
         self.discriminator.compile(loss='binary_crossentropy',
                                    optimizer=optimizer,
                                    metrics=['accuracy'])
-        self.generator.compile(loss=['binary_crossentropy'],
+        self.generator.compile(loss='binary_crossentropy',
                                optimizer=optimizer)
 
         masked_img = Input(shape=self.img_shape)
@@ -67,33 +64,8 @@ class CCgan():
             self.generator.save("saved_model/generator.h5")
             self.discriminator.save("saved_model/discriminator.h5")        
 
-    def mask_randomly(self, imgs):
-        y1 = np.random.randint(0, self.img_cols - self.mask_height, imgs.shape[0])
-        y2 = y1 + self.mask_height
-        x1 = np.random.randint(0, self.img_rows - self.mask_width, imgs.shape[0])
-        x2 = x1 + self.mask_width
 
-        masked_imgs = np.empty_like(imgs)
-        missing_parts = np.empty((imgs.shape[0],self.mask_width,self.mask_height, self.channels))
-        for i, img in enumerate(imgs):
-            masked_img = img.copy()
-            _y1, _y2, _x1, _x2 = y1[i], y2[i], x1[i], x2[i]
-            missing_parts[i] = masked_img[_x1:_x2, _y1:_y2, :].copy()
-            masked_img[_x1:_x2, _y1:_y2, :] = -1
-            masked_imgs[i] = masked_img
-        return masked_imgs, missing_parts, (y1, y2, x1, x2)
-
-    def combine(self,gen_part,org_img,coord):
-        org_copy=org_img.copy()
-        for i, img in enumerate(org_copy):
-            y1=coord[0][i]
-            y2=coord[1][i]
-            x1=coord[2][i]
-            x2=coord[3][i]
-            org_copy[i,x1:x2,y1:y2]=gen_part[i,x1:x2,y1:y2]
-        return org_copy
-
-
+   
 
     def train(self, epochs, batch_size=2, save_interval=50):
         soft= True if '-soft' in sys.argv else False
@@ -106,8 +78,9 @@ class CCgan():
             idx = np.random.randint(0, X_train.shape[0], half_batch)
             imgs = X_train[idx]
 
-            masked_imgs, missing, coords = self.mask_randomly(imgs)
-            gen_missing = self.generator.predict(masked_imgs)
+            masked_imgs, missing, mask = mask_from_template(imgs)
+            gen_fake = self.generator.predict(missing)
+            gen_fake = combine_imgs_with_mask(gen_fake, imgs, mask)
 
 
             # SPESSSIELLE TING
@@ -128,8 +101,7 @@ class CCgan():
             # Train the discriminator
             d_loss_real = self.discriminator.train_on_batch(imgs, valid)
             #splising fake imgs
-            fake_part=self.combine(gen_missing, imgs, coords)
-            d_loss_fake = self.discriminator.train_on_batch(fake_part, fake)
+            d_loss_fake = self.discriminator.train_on_batch(gen_fake, fake)
             d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
 
             # ---------------------
@@ -140,7 +112,7 @@ class CCgan():
             idx = np.random.randint(0, X_train.shape[0], batch_size)
             imgs = X_train[idx]
 
-            masked_imgs, missing_parts, _ = self.mask_randomly(imgs)
+            masked_imgs, missing_parts, _ = mask_from_template(imgs)
 
             valid = np.ones((batch_size, 1))
 
@@ -162,22 +134,21 @@ class CCgan():
     def sample_images(self, epoch, imgs):
         r, c = 3, 6
 
-        masked_imgs, missing_parts, (y1, y2, x1, x2) = self.mask_randomly(imgs)
-        gen_missing = self.generator.predict(masked_imgs)
-
+        masked_imgs, missing_parts, m = mask_from_template(imgs)   
+        gen_fake1 = self.generator.predict(missing_parts)
+        gen_fake = combine_imgs_with_mask(gen_fake1, imgs, m)
         imgs = 0.5 * imgs + 0.5
         masked_imgs = 0.5 * masked_imgs + 0.5
-        gen_missing = 0.5 * gen_missing + 0.5
+        gen_fake = 0.5 * gen_fake + 0.5
+        gen_fake1 = 0.5 * gen_fake1 + 0.5
 
         fig, axs = plt.subplots(r, c)
         for i in range(c):
             axs[0,i].imshow(imgs[i, :,:])
             axs[0,i].axis('off')
-            axs[1,i].imshow(gen_missing[i, :,:])
+            axs[1,i].imshow(gen_fake[i, :,:])
             axs[1,i].axis('off')
-            filled_in = imgs[i].copy()
-            filled_in[x1[i]:x2[i], y1[i]:y2[i], :] = gen_missing[i,x1[i]:x2[i],y1[i]:y2[i]]
-            axs[2,i].imshow(filled_in)
+            axs[2,i].imshow(gen_fake1[i,:,:])
             axs[2,i].axis('off')
         fig.savefig("images/cc_%d.png" % epoch)
         plt.close()
@@ -190,7 +161,7 @@ class CCgan():
 
 if __name__ == '__main__':
     cc = CCgan()
-    cc.train(epochs=30000, batch_size=10, save_interval=50)
+    cc.train(epochs=30000, batch_size=3, save_interval=5)
 
 
 

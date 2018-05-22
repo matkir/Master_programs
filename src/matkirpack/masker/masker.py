@@ -2,6 +2,7 @@ import scipy.misc
 import numpy as np
 import pygame, sys 
 from PIL import Image 
+import plotload as pl
 
 
 def mask_randomly_square(imgs,mask_height,mask_width,mask_val=0):
@@ -78,8 +79,40 @@ def mask_from_template(imgs,template_folder="templates",val=0,fliplr=True,flipud
         masked_imgs[i] = masked_img
         missing_parts[i] = rest
 
-    return masked_imgs, missing_parts 
+    return masked_imgs, missing_parts, mask
 
+def combine_imgs_with_mask(gen_img,org_img,mask):
+    """
+    Takes an image (org_img) and replaces parts of the image with the gen img part, where the mask is True
+    If only one mask is given, every transformation will use the same mask.
+    If as many masks as images, each mask will be used in order per image.
+    
+    :param gen_img: image array with only the parts needed to fill img (num_imgs,col,row,channel)
+    :param org_img: image array that needs a new part (num_imgs,col,row,channel)
+    :param mask: a boolean array of either (1,col,row,channel) or (num_imgs,col,row,channel).
+    :return: Img array with the same dims as org_img
+    """
+    org_copy=org_img.copy()
+    gen_copy=gen_img.copy()
+    mask_copy=mask.copy()
+    #check if 3 dims and fist dim is 1
+    if mask_copy.shape[0]==1:
+        mask_copy=np.repeat(mask_copy, org_copy.shape[0], axis=0)
+    
+    #only 2 dims adding and expending dims
+    if len(mask_copy.shape)==2:
+        mask_copy=np.expand_dims(mask_copy, 0)
+        mask_copy=np.repeat(mask_copy, org_copy.shape[0], axis=0)
+    #adding color dim
+    mask_copy=np.expand_dims(mask_copy,-1)
+    mask_copy=np.repeat(mask_copy, 3, axis=-1)
+    
+            
+    for i, img in enumerate(org_copy):
+        mask_copy[i] = np.multiply(mask_copy[i],gen_copy[i])
+        org_copy[i]  = np.multiply(np.logical_not(mask_copy[i]),org_copy[i])
+        org_copy[i]  = np.add(mask_copy[i],org_copy[i])
+    return org_copy        
 
 if __name__=='__main__':    
     import plotload as pl
@@ -87,8 +120,13 @@ if __name__=='__main__':
     img=pl.load_polyp_batch((576,720,3),5,data_type="green",rot=False)
     #a,b,c=mask_randomly_square(img, 20, 100)
     #a,b,c=mask_green_corner(img)
-    a,b=mask_from_template(img)
-    plt.imshow(0.5*b[0]+0.5)
+    mask,missing,template=mask_from_template(img,rot=False)
+    #plt.imshow(0.5*missing[0]+0.5)
+    #plt.show()
+    plt.imshow(0.5*missing[0]+0.5)
     plt.show()
-    plt.imshow(0.5*a[0]+0.5)
-    plt.show()
+    img2=img[::-1,:,:,:]
+    reconst=combine_imgs_with_mask(img2,img,template)
+    #plt.imshow(0.5*reconst[0]+0.5)
+    #plt.show()
+   
