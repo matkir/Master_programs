@@ -65,19 +65,21 @@ def mask_from_template(imgs,template_folder="templates",val=0,fliplr=True,flipud
     if len(imgs.shape)==3:
         imgs=np.expand_dims(imgs, 0)
     img_num,img_cols,img_rows,img_channels=imgs.shape
-    mask=pl.load_single_template((img_cols,img_rows),template_folder,fliplr=fliplr,flipud=flipud,rot=rot)
     
     masked_imgs   = np.empty_like(imgs)
     missing_parts = np.empty_like(imgs)
+    mask          = np.empty_like(imgs[:,:,:,1])
+    for i in range(img_num):
+        mask[i]=pl.load_single_template((img_cols,img_rows),template_folder,fliplr=fliplr,flipud=flipud,rot=rot)
     for i, img in enumerate(imgs):
         masked_img = img.copy()
         rest       = img.copy()
-        rest[:,:,0]       = np.multiply(masked_img[:,:,0],np.logical_not(mask))
-        rest[:,:,1]       = np.multiply(masked_img[:,:,1],np.logical_not(mask))
-        rest[:,:,2]       = np.multiply(masked_img[:,:,2],np.logical_not(mask))
-        masked_img[:,:,0] = np.multiply(masked_img[:,:,0],mask)
-        masked_img[:,:,1] = np.multiply(masked_img[:,:,1],mask)
-        masked_img[:,:,2] = np.multiply(masked_img[:,:,2],mask)
+        rest[:,:,0]       = np.multiply(masked_img[:,:,0],np.logical_not(mask[i]))
+        rest[:,:,1]       = np.multiply(masked_img[:,:,1],np.logical_not(mask[i]))
+        rest[:,:,2]       = np.multiply(masked_img[:,:,2],np.logical_not(mask[i]))
+        masked_img[:,:,0] = np.multiply(masked_img[:,:,0],mask[i])
+        masked_img[:,:,1] = np.multiply(masked_img[:,:,1],mask[i])
+        masked_img[:,:,2] = np.multiply(masked_img[:,:,2],mask[i])
         masked_imgs[i] = masked_img
         missing_parts[i] = rest
 

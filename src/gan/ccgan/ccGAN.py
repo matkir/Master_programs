@@ -68,9 +68,10 @@ class CCgan():
    
 
     def train(self, epochs, batch_size=2, save_interval=50):
+        from tqdm import tqdm
         soft= True if '-soft' in sys.argv else False
         half_batch=batch_size//2
-        for epoch in range(epochs):
+        for epoch in tqdm(range(epochs)):
             if epoch%100==0:
                 X_train=plotload.load_polyp_batch(self.img_shape, batch_size*5)
 
@@ -161,7 +162,7 @@ class CCgan():
 
 if __name__ == '__main__':
     cc = CCgan()
-    cc.train(epochs=30000, batch_size=3, save_interval=5)
+    cc.train(epochs=30000, batch_size=12, save_interval=100)
 
 
 

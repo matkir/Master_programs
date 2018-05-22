@@ -175,7 +175,7 @@ if __name__=='__main__':
     a=load_one_img((576,720,3))
     plt.imshow(0.5*a[0]+0.5)
     plt.show()    
-    a=load_polyp_batch((576,720,3), 100, rot=False)
+    a=load_polyp_batch((576,720,3), 100, rot=True)
     plt.imshow(0.5*a[0]+0.5)
     plt.show()    
     a=load_polyp_data((576//2,720//2,3),data_type="polyps")
