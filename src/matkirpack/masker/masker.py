@@ -62,8 +62,10 @@ def mask_green_corner(imgs,val=0):
     return masked_imgs, missing_parts, (y1, y2, x1, x2)
 
 def mask_from_template(imgs,template_folder="templates",val=0,fliplr=True,flipud=True,rot=True):
+    if len(imgs.shape)==3:
+        imgs=np.expand_dims(imgs, 0)
     img_num,img_cols,img_rows,img_channels=imgs.shape
-    mask=pl.load_single_template((img_cols,img_rows),template_folder,fliplr=True,flipud=True,rot=True)
+    mask=pl.load_single_template((img_cols,img_rows),template_folder,fliplr=fliplr,flipud=flipud,rot=rot)
     
     masked_imgs   = np.empty_like(imgs)
     missing_parts = np.empty_like(imgs)
@@ -95,6 +97,10 @@ def combine_imgs_with_mask(gen_img,org_img,mask):
     org_copy=org_img.copy()
     gen_copy=gen_img.copy()
     mask_copy=mask.copy()
+    #only 2 dims adding and expending dims
+    if len(org_copy.shape)==3:
+        org_copy=np.expand_dims(org_copy, 0)
+   
     #check if 3 dims and fist dim is 1
     if mask_copy.shape[0]==1:
         mask_copy=np.repeat(mask_copy, org_copy.shape[0], axis=0)
@@ -103,6 +109,7 @@ def combine_imgs_with_mask(gen_img,org_img,mask):
     if len(mask_copy.shape)==2:
         mask_copy=np.expand_dims(mask_copy, 0)
         mask_copy=np.repeat(mask_copy, org_copy.shape[0], axis=0)
+        
     #adding color dim
     mask_copy=np.expand_dims(mask_copy,-1)
     mask_copy=np.repeat(mask_copy, 3, axis=-1)

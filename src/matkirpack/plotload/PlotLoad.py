@@ -3,7 +3,7 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-
+import glob
 def _reduce_glare(input_img,tol=250,avg_mode=False):
     """
     Clips images, so that the highest values are lower
@@ -41,6 +41,10 @@ def _find_folder(data_type):
         folder=os.path.expanduser("~")
         folder=folder+"/Documents/kvasir-dataset-v2/none/"
     elif type(data_type) == str:
+        if '.png' in data_type:
+            return data_type
+        if data_type[0]=='/':
+            return data_type
         folder=os.path.expanduser("~")
         folder=folder+"/Documents/kvasir-dataset-v2/"+data_type+"/"
         if not os.path.isdir(folder):
@@ -129,7 +133,10 @@ def load_one_img(img_shape,dest=None,crop=True,glare=True):
     """
     
     folder =_find_folder(dest)
-    img=folder+np.random.choice(os.listdir(folder),1)[0]    
+    if not '.png' in folder:
+        img=folder+np.random.choice(os.listdir(folder),1)[0]    
+    else:
+        img=folder
     
     save=cv2.cvtColor(cv2.imread(img), cv2.COLOR_BGR2RGB)
     gray = cv2.cvtColor(cv2.imread(img),cv2.COLOR_BGR2GRAY)
@@ -144,8 +151,11 @@ def load_one_img(img_shape,dest=None,crop=True,glare=True):
 
 def load_single_template(img_shape,dest='templates',fliplr=True,flipud=True,rot=True):
     folder=_find_folder(dest)
-    arr=folder+np.random.choice(os.listdir(folder),1)[0]
-    arr=np.load(arr)
+    if folder != dest:
+        folder=folder+np.random.choice(os.listdir(folder),1)[0]
+    else:
+        folder=np.random.choice(glob.glob(folder+'/*.npy'),1)[0]
+    arr=np.load(folder)
     #remember that numpy takes [x,y], but img_shape is [y,x,channel]
     if arr.shape[0]!=img_shape[1]:
         arr=cv2.resize(arr,(img_shape[1],img_shape[0]))

@@ -343,7 +343,7 @@ def get_coord_live(adr='2.jpg',scale=1,img_rows=576,img_cols=720,mask_height=208
         
     pygame.display.quit()
 
-def gui(adr='2.jpg',scale=1,img_rows=720,img_cols=576):
+def gui(adr=None,scale=1,img_rows=720,img_cols=576):
     """
     gui is a full gui program that takes an image as input, and gives the user the option to make its own mask
     """
@@ -354,7 +354,7 @@ def gui(adr='2.jpg',scale=1,img_rows=720,img_cols=576):
     img_shape = (img_rows, img_cols, channels)
 
 
-    img,img_path=pl.load_one_img((img_cols,img_rows,channels))
+    img,img_path=pl.load_one_img((img_cols,img_rows,channels),dest=adr)
     scipy.misc.toimage(img, cmin=-1, cmax=1).save('tmp.png')            
     
     #starting window, and adding buttons
