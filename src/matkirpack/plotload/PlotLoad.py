@@ -20,11 +20,21 @@ def _reduce_glare(input_img,tol=250,avg_mode=False):
 def _mask_around(input_img,tol):
     pass
     
-    
-def _crop_img(input_img,gray,tol=20,erosion=True):
+def _crop_center(img,crop_size):
+    y,x,_= img.shape
+    return img[0+crop_size:y-crop_size,0+crop_size:x-crop_size,:]    
+
+def _crop_img(input_img,gray,tol=20,erosion=True,total=False):
     """
     Removes the black bars around images
     """
+    if total:
+        kernel = np.ones((20,20),np.uint8)
+        gray = cv2.morphologyEx(gray, cv2.MORPH_OPEN, kernel)        
+        mask=gray>20
+        mask = cv2.morphologyEx(mask.astype(np.float32), cv2.MORPH_OPEN, kernel)      
+        ret_img=input_img[np.ix_(mask.any(1),mask.any(0))]
+        return _crop_center(ret_img,int(input_img.shape[0]*total))
     if erosion:
         kernel = np.ones((5,5),np.uint8)
         gray = cv2.morphologyEx(gray, cv2.MORPH_OPEN, kernel)        
@@ -127,7 +137,7 @@ def load_polyp_batch(img_shape,batch_size,data_type=None,rot=False,crop=True,gla
     np.save("train_data.npy", data)
     return data
 
-def load_one_img(img_shape,dest=None,crop=True,glare=True):
+def load_one_img(img_shape,dest=None,crop=True,glare=True,total=0):
     """
     Loads a spessific img, or random if non declared
     """
@@ -141,7 +151,7 @@ def load_one_img(img_shape,dest=None,crop=True,glare=True):
     save=cv2.cvtColor(cv2.imread(img), cv2.COLOR_BGR2RGB)
     gray = cv2.cvtColor(cv2.imread(img),cv2.COLOR_BGR2GRAY)
     if crop:
-        save=_crop_img(save,gray)
+        save=_crop_img(save,gray,total=total)
     if glare:
         save=_reduce_glare(save)
     save=cv2.resize(save,(img_shape[1],img_shape[0]))
@@ -172,13 +182,15 @@ def load_single_template(img_shape,dest='templates',fliplr=True,flipud=True,rot=
        
 
 if __name__=='__main__':
-    a=load_one_img((576,720,3))
+    a=load_one_img((576,720,3),dest='2.jpg',total=0.08,crop=True)
+    """
     plt.imshow(0.5*a[0]+0.5)
     plt.show()    
     a=load_polyp_batch((576,720,3), 100, rot=True)
     plt.imshow(0.5*a[0]+0.5)
     plt.show()    
     a=load_polyp_data((576//2,720//2,3),data_type="polyps")
+    """
     plt.imshow(0.5*a[0]+0.5)
     plt.show()    
     print()
