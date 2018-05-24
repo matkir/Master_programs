@@ -21,16 +21,12 @@ import numpy as np
 
 class CCgan():
     def __init__(self):
-        self.img_rows = 576#8*64//2#32
-        self.img_cols = 720#8*64//2#32
+        self.img_rows = 576//2#8*64//2#32
+        self.img_cols = 720//2#8*64//2#32
         # mask idealy 170 * 215  
-        self.mask_width = 170#128#208
-        self.mask_height = 215#160#280
         self.channels = 3
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
-        self.missing_shape = (self.mask_width, self.mask_height, self.channels)
-        self.model=Weight_model(self.img_rows, self.img_cols, self.mask_width,self.mask_height)
-
+        self.model=Weight_model(self.img_rows, self.img_cols)
         optimizer = Adam(0.0002, 0.5)
 
 
@@ -58,12 +54,12 @@ class CCgan():
         self.combined = Model(masked_img , [gen_img, valid])
         self.combined.compile(loss=['mse', 'binary_crossentropy'],
                               loss_weights=[0.999, 0.001],
-            optimizer=optimizer)        
+                              optimizer=optimizer)        
 
         if "-save" in sys.argv:
             self.generator.save("saved_model/generator.h5")
             self.discriminator.save("saved_model/discriminator.h5")        
-
+            sys.exit()
 
    
 
@@ -101,7 +97,6 @@ class CCgan():
 
             # Train the discriminator
             d_loss_real = self.discriminator.train_on_batch(imgs, valid)
-            #splising fake imgs
             d_loss_fake = self.discriminator.train_on_batch(gen_fake, fake)
             d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
 

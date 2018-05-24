@@ -14,16 +14,13 @@ from keras.utils import to_categorical
 import keras.backend as K
 
 class Weight_model():
-    def __init__(self,img_rows,img_cols,mask_width,mask_height):
+    def __init__(self,img_rows,img_cols):
         self.img_rows = img_rows 
         self.img_cols = img_cols 
-        self.mask_width = mask_width
-        self.mask_height = mask_height 
         self.channels = 3
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
-        self.missing_shape = (self.mask_width, self.mask_height, self.channels)
-        self.gf=32//3
-        self.df=32//3
+        self.gf=32
+        self.df=32
         
         
     def build_generator(self):
@@ -37,7 +34,7 @@ class Weight_model():
                 d = BatchNormalization(momentum=0.8)(d)
             return d
 
-        def deconv2d(layer_input, skip_input, filters, f_size=4, dropout_rate=0):
+        def deconv2d(layer_input, filters, f_size=4, dropout_rate=0):
             """Layers used during upsampling"""
             u = UpSampling2D(size=2)(layer_input)
             u = Conv2D(filters, kernel_size=f_size, strides=1, padding='same', activation='relu')(u)
@@ -45,35 +42,27 @@ class Weight_model():
                 u = Dropout(dropout_rate)(u)
             u = BatchNormalization(momentum=0.8)(u)
             return u
-        #def deconv2d(layer_input, skip_input, filters, f_size=4, dropout_rate=0):
-            #"""Layers used during upsampling"""
-            #u = UpSampling2D(size=2)(layer_input)
-            #u = Conv2D(filters, kernel_size=f_size, strides=1, padding='same', activation='relu')(u)
-            #if dropout_rate:
-            #    u = Dropout(dropout_rate)(u)
-            #u = BatchNormalization(momentum=0.8)(u)
-            #u = Concatenate()([u, skip_input])
-            #return u
         
         img = Input(shape=self.img_shape)
         #adding gausian noise, might not be the right way to do it?
-        noise = GaussianNoise(0.01)(img)
+        #noise = GaussianNoise(0.01)(img)
         
         
         # Downsampling
-        d1 = conv2d(noise, self.gf, bn=False)
+        d1 = conv2d(img, self.gf, bn=False)
         d2 = conv2d(d1, self.gf*2)
         d3 = conv2d(d2, self.gf*4)
         d4 = conv2d(d3, self.gf*8)
     
         # Upsampling
-        u1 = deconv2d(d4, d3, self.gf*4,dropout_rate=0.5)
-        u2 = deconv2d(u1, d2, self.gf*2)
-        u3 = deconv2d(u2, d1, self.gf)
+        u1 = deconv2d(d4, self.gf*4,dropout_rate=0.25)
+        u2 = deconv2d(u1, self.gf*2,dropout_rate=0.25)
+        u3 = deconv2d(u2, self.gf)
     
         u4 = UpSampling2D(size=2)(u3)
         output_img = Conv2D(self.channels, kernel_size=4, strides=1, padding='same', activation='tanh')(u4)
 
+        model.summary()
         return Model(img, output_img)
 
     
