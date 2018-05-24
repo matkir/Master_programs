@@ -22,8 +22,8 @@ class Weight_model():
         self.channels = 3
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
         self.missing_shape = (self.mask_width, self.mask_height, self.channels)
-        self.gf=32//8
-        self.df=32//8
+        self.gf=32//3
+        self.df=32//3
         
         
     def build_generator(self):
@@ -57,7 +57,7 @@ class Weight_model():
         
         img = Input(shape=self.img_shape)
         #adding gausian noise, might not be the right way to do it?
-        noise = GaussianNoise(0.05)(img)
+        noise = GaussianNoise(0.01)(img)
         
         
         # Downsampling
@@ -67,7 +67,7 @@ class Weight_model():
         d4 = conv2d(d3, self.gf*8)
     
         # Upsampling
-        u1 = deconv2d(d4, d3, self.gf*4)
+        u1 = deconv2d(d4, d3, self.gf*4,dropout_rate=0.5)
         u2 = deconv2d(u1, d2, self.gf*2)
         u3 = deconv2d(u2, d1, self.gf)
     
