@@ -21,8 +21,8 @@ import numpy as np
 
 class CCgan():
     def __init__(self):
-        self.img_rows = 576//2#8*64//2#32
-        self.img_cols = 720//2#8*64//2#32
+        self.img_rows = 576//3#8*64//2#32
+        self.img_cols = 720//3#8*64//2#32
         # mask idealy 170 * 215  
         self.channels = 3
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
@@ -157,7 +157,7 @@ class CCgan():
 
 if __name__ == '__main__':
     cc = CCgan()
-    cc.train(epochs=30000, batch_size=5, save_interval=100)
+    cc.train(epochs=30000, batch_size=50, save_interval=100)
 
 
 

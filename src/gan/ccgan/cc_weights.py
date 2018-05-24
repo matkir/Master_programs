@@ -19,8 +19,8 @@ class Weight_model():
         self.img_cols = img_cols 
         self.channels = 3
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
-        self.gf=32
-        self.df=32
+        self.gf=64
+        self.df=64
         
         
     def build_generator(self):
@@ -53,16 +53,17 @@ class Weight_model():
         d2 = conv2d(d1, self.gf*2)
         d3 = conv2d(d2, self.gf*4)
         d4 = conv2d(d3, self.gf*8)
+        d5 = conv2d(d4, self.gf*16)
     
         # Upsampling
         u1 = deconv2d(d4, self.gf*4,dropout_rate=0.25)
         u2 = deconv2d(u1, self.gf*2,dropout_rate=0.25)
-        u3 = deconv2d(u2, self.gf)
+        u3 = deconv2d(u2, self.gf*2)
+        u4 = deconv2d(u3, self.gf)
     
         u4 = UpSampling2D(size=2)(u3)
         output_img = Conv2D(self.channels, kernel_size=4, strides=1, padding='same', activation='tanh')(u4)
 
-        model.summary()
         return Model(img, output_img)
 
     
