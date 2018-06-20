@@ -67,6 +67,9 @@ class CCgan():
         from tqdm import tqdm
         soft= True if '-soft' in sys.argv else False
         half_batch=batch_size//2
+        from keras.callbacks import TensorBoard
+        board=TensorBoard(log_dir='./Graph', histogram_freq=0,write_graph=True, write_images=True)        
+        board.set_model(self.discriminator)
         for epoch in tqdm(range(epochs)):
             if epoch%100==0:
                 X_train=plotload.load_polyp_batch(self.img_shape, batch_size*5)
@@ -94,7 +97,7 @@ class CCgan():
                 valid=fake
                 fake=placeholder
 
-
+        
             # Train the discriminator
             d_loss_real = self.discriminator.train_on_batch(imgs, valid)
             d_loss_fake = self.discriminator.train_on_batch(gen_fake, fake)
@@ -157,7 +160,7 @@ class CCgan():
 
 if __name__ == '__main__':
     cc = CCgan()
-    cc.train(epochs=30000, batch_size=50, save_interval=100)
+    cc.train(epochs=300, batch_size=3, save_interval=1000)
 
 
 

@@ -83,6 +83,9 @@ class ContextEncoder():
         soft= True if '-soft' in sys.argv else False
         corner= True if '-corner' in sys.argv else False
         numtimes=np.zeros(batch_size*5)
+        from keras.callbacks import TensorBoard
+        board=TensorBoard(write_images=True,write_graph=True)
+        board.set_model(self.discriminator)
         for epoch in range(epochs):
 
 
