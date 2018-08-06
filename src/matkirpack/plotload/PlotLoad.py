@@ -160,6 +160,7 @@ def load_one_img(img_shape,dest=None,crop=True,glare=True,total=0,printable=Fals
         data=data*0.5+0.5
     if extra_dim:
         data=np.expand_dims(data, axis=0)
+        return data
     return data,img
 
 
