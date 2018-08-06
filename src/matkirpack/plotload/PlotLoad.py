@@ -137,7 +137,7 @@ def load_polyp_batch(img_shape,batch_size,data_type=None,rot=False,crop=True,gla
     np.save("train_data.npy", data)
     return data
 
-def load_one_img(img_shape,dest=None,crop=True,glare=True,total=0):
+def load_one_img(img_shape,dest=None,crop=True,glare=True,total=0,printable=False,extra_dim=False):
     """
     Loads a spessific img, or random if non declared
     """
@@ -156,6 +156,10 @@ def load_one_img(img_shape,dest=None,crop=True,glare=True,total=0):
         save=_reduce_glare(save)
     save=cv2.resize(save,(img_shape[1],img_shape[0]))
     data = (save.astype(np.float32) - 127.5) / 127.5
+    if printable:
+        data=data*0.5+0.5
+    if extra_dim:
+        data=np.expand_dims(data, axis=0)
     return data,img
 
 
