@@ -9,8 +9,8 @@ import os
 
 class TL():
     def __init__(self):
-        self.img_rows = 576//8
-        self.img_cols = 720//8        
+        self.img_rows = 576//2
+        self.img_cols = 720//2        
         self.channels = 3
         self.img_shape = (self.img_cols, self.img_rows, self.channels)
         model,l_out=self.make_model()
@@ -58,18 +58,18 @@ class TL():
                                                                 class_mode = "categorical")
         
         
-        checkpoint = ModelCheckpoint("vgg16_1.h5", monitor='val_acc', verbose=1, save_best_only=True, save_weights_only=False, mode='auto', period=1)
-        early = EarlyStopping(monitor='val_acc', min_delta=0, patience=10, verbose=1, mode='auto')
+        #checkpoint = ModelCheckpoint("vgg16_1.h5", monitor='val_acc', verbose=1, save_best_only=True, save_weights_only=False, mode='auto', period=1)
+        #early = EarlyStopping(monitor='val_acc', min_delta=0, patience=10, verbose=1, mode='auto')
         
         
         # Train the model 
         self.VGG.fit_generator(
             train_generator,
             samples_per_epoch = 5000,
-            epochs = 1,
+            epochs = 2)#,
             #validation_data = validation_generator,
             #nb_val_samples = nb_validation_samples,
-            callbacks = [checkpoint, early])
+            #callbacks = [checkpoint, early])
         
         
     def make_model(self):
@@ -77,7 +77,7 @@ class TL():
         #model.summary()
         
         #Freezing 
-        for layer in model.layers[:10]:
+        for layer in model.layers[:5]:
             layer.trainable = False
         
         #adding custom layer
