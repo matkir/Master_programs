@@ -3,6 +3,7 @@ from keras.preprocessing.image import ImageDataGenerator
 from keras import optimizers
 from keras.models import Sequential, Model 
 from keras.layers import Dropout, Flatten, Dense, GlobalAveragePooling2D
+from keras.optimizers import Adam
 from keras import backend as k 
 from keras.callbacks import ModelCheckpoint, LearningRateScheduler, TensorBoard, EarlyStopping
 import os
@@ -14,8 +15,9 @@ class TL():
         self.channels = 3
         self.img_shape = (self.img_cols, self.img_rows, self.channels)
         model,l_out=self.make_model()
+        o=Adam(lr=0.0001)
         self.VGG=Model(model.input,l_out)
-        self.VGG.compile('adam', loss='categorical_crossentropy', metrics=['accuracy']) 
+        self.VGG.compile(o, loss='categorical_crossentropy', metrics=['accuracy']) 
         
         
         folder=os.path.expanduser("~")
