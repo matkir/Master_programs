@@ -8,6 +8,7 @@ from keras import backend as k
 from keras.callbacks import ModelCheckpoint, LearningRateScheduler, TensorBoard, EarlyStopping
 import os
 
+
 class TL():
     def __init__(self):
         self.img_rows = 576//2

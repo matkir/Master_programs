@@ -6,5 +6,5 @@ setup(name='matpack',
             author='Mathias Kirkerod',
             author_email='mathias.kirkerod@gmail.com',
             license='MIT',
-            packages=['encdec','plotload','selector','masker'],
+            packages=['encdec','plotload','selector','masker','cutter'],
             zip_safe=False)
