@@ -63,20 +63,20 @@ class TL():
         test_generator = test_datagen.flow_from_directory(self.val_dir,
                                                                 target_size = (self.img_cols, self.img_rows),
                                                                 class_mode = "categorical")
-      
-       
-        checkpoint = ModelCheckpoint("vgg16_1.h5", monitor='val_acc', verbose=1, save_best_only=True, save_weights_only=False, mode='auto', period=1)
-        checkpoint = ModelCheckpoint("densenet_1.h5", monitor='val_acc', verbose=1, save_best_only=True, save_weights_only=False, mode='auto', period=1)
+        path, dirs, files = next(os.walk('./logs'))
+        file_count=len(files)
+        checkpoint = ModelCheckpoint(f"vgg16_{file_count}.h5", monitor='val_acc', verbose=1, save_best_only=True, save_weights_only=True, mode='auto', period=1)
+        checkpoint = ModelCheckpoint(f"densenet_{file_count}.h5", monitor='val_acc', verbose=1, save_best_only=True, save_weights_only=True, mode='auto', period=1)
         early = EarlyStopping(monitor='val_acc', min_delta=0, patience=10, verbose=1, mode='auto')
-        board = TensorBoard()
+        board = TensorBoard(f"./logs/run_{file_count}")
         
         # Train the model 
         self.VGG.fit_generator(
             train_generator,
-            steps_per_epoch= 5000,
-            epochs = 20,
+            steps_per_epoch= 100,
+            epochs = 40,
             validation_data = validation_generator,
-            nb_val_samples = 100,
+            validation_steps = 100,
             callbacks = [checkpoint, early, board])
         self.VGG.evaluate_generator(generator, 
                                    verbose=1)
@@ -87,7 +87,7 @@ class TL():
         model.summary()
         
         #Freezing 
-        for layer in model.layers[:700]:
+        for layer in model.layers[:600]:
             layer.trainable = False
         
         #adding custom layer
