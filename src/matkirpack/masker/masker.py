@@ -128,13 +128,17 @@ if __name__=='__main__':
     import matplotlib.pyplot as plt  
     img=pl.load_polyp_batch((576,720,3),5,data_type="green",rot=False)
     #a,b,c=mask_randomly_square(img, 20, 100)
-    #a,b,c=mask_green_corner(img)
-    mask,missing,template=mask_from_template(img,rot=False)
+    a,b,c=mask_green_corner(img)
+    plt.imshow(a[0]*0.5+0.5)
+    plt.show()
+    plt.imshow(b[0]*0.5+0.5)
+    plt.show()
+    #mask,missing,template=mask_from_template(img,rot=False)
     #plt.imshow(0.5*missing[0]+0.5)
     #plt.show()
-    plt.imshow(0.5*missing[0]+0.5)
-    plt.show()
-    img2=img[::-1,:,:,:]
+    #plt.imshow(0.5*missing[0]+0.5)
+    #plt.show()
+    #img2=img[::-1,:,:,:]
     reconst=combine_imgs_with_mask(img2,img,template)
     #plt.imshow(0.5*reconst[0]+0.5)
     #plt.show()

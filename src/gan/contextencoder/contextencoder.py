@@ -16,31 +16,41 @@ import masker as ms
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-
+import plotload
+import sys
 import numpy as np
 
 class ContextEncoder():
     def __init__(self):
-        self.img_rows = 720//4#8*64//2#32
-        self.img_cols = 576//4#8*64//2#32
-        self.mask_width = 48#208
-        self.mask_height = 32#280
+        self.img_rows = 720//6#8*64//2#32
+        self.img_cols = 576//6#8*64//2#32
         self.channels = 3
         self.img_shape = (self.img_cols, self.img_rows, self.channels)
+
+        #to find mask size we need to make a dummy img based on input dims.
+        if '-corner' in sys.argv:
+            dummy=plotload.load_one_img(self.img_shape, dest='none',extra_dim=True)
+            a, b, dims = ms.mask_green_corner(dummy)
+            self.mask_width = dims[3]-dims[2]
+            self.mask_height = dims[1]-dims[0]
+            corner=True
+        else:        
+            self.mask_width = 62#208
+            self.mask_height = 51#280
+            corner=False
+        
         self.missing_shape = (self.mask_height, self.mask_width, self.channels)
-        self.model=Weight_model(self.img_cols, self.img_rows, self.mask_height,self.mask_width)
+        self.model=Weight_model(self.img_cols, self.img_rows, self.mask_height,self.mask_width,corner)
 
         optimizer = Adam(0.0002, 0.5)
         
         #Build and compile the discriminator
-        #self.discriminator = self.build_discriminator()
         self.discriminator = self.model.build_discriminator()
         self.discriminator.compile(loss='binary_crossentropy',
             optimizer=optimizer,
             metrics=['accuracy'])
 
         # Build and compile the generator
-        #self.generator = self.build_generator_img_size()
         self.generator = self.model.build_generator_img_size()
         self.generator.compile(loss=['binary_crossentropy'],
             optimizer=optimizer)
@@ -65,7 +75,7 @@ class ContextEncoder():
         # masked_img as input => generates missing image => determines validity
         self.combined = Model(masked_img , [gen_missing, valid])
         self.combined.compile(loss=['mse', 'binary_crossentropy'],
-            loss_weights=[0.999, 0.001],
+            loss_weights=[0.7, 0.3],
             optimizer=optimizer)
         if "-save" in sys.argv:
             self.generator.save("saved_model/generator.h5")
@@ -75,16 +85,15 @@ class ContextEncoder():
 
     def train(self, epochs, batch_size=128, sample_interval=50):
         half_batch = int(batch_size / 2)
-        import plotload
+
         """
         X_train=plotload.load_polyp_data(self.img_shape)
         """
-        import sys
         soft= True if '-soft' in sys.argv else False
         corner= True if '-corner' in sys.argv else False
-        numtimes=np.zeros(batch_size*5)
+        numtimes=np.zeros(batch_size)
         from keras.callbacks import TensorBoard
-        board=TensorBoard(write_images=True,write_graph=True)
+        board=TensorBoard()
         board.set_model(self.discriminator)
         for epoch in range(epochs):
 
@@ -95,11 +104,11 @@ class ContextEncoder():
 
             # Select a random half batch of images
                 
-            if epoch%100==0:
+            if epoch%10==0:
                 print(f"most used picture was traned on {max(numtimes)} times")
-                numtimes=np.zeros(batch_size*5)        
-                X_train=plotload.load_polyp_batch(self.img_shape, batch_size*5)
-            if epoch%50==0:
+                numtimes=np.zeros(batch_size)        
+                X_train=plotload.load_polyp_batch(self.img_shape, batch_size, data_type='none')
+            if epoch%50==0 and not corner:
                 #after 50 itterations we flip the images, to make the set 2x times as large. sorry for not vectorizing
                 for i in range(batch_size):
                     X_train[i]=np.fliplr(X_train[i])
@@ -159,15 +168,17 @@ class ContextEncoder():
             # If at save interval => save generated image samples
             if epoch % sample_interval == 0:
                 # Select a random half batch of images
-                idx = np.random.randint(0, X_train.shape[0], 6)
-                imgs = X_train[idx]
+                imgs=plotload.load_polyp_batch(self.img_shape, 4, 
+                                         data_type='green', 
+                                         crop=False)
                 self.sample_images(epoch, imgs)
             if epoch % (sample_interval*5) == 0:
                 self.save_model()   
     def sample_images(self, epoch, imgs):
-        r, c = 3, 6
+        r, c = 3, 4
 
-        masked_imgs, missing_parts, (y1, y2, x1, x2) = ms.mask_randomly_square(imgs,self.mask_height,self.mask_width)
+        #masked_imgs, missing_parts, (y1, y2, x1, x2) = ms.mask_randomly_square(imgs,self.mask_height,self.mask_width)
+        masked_imgs, missing_parts, (y1, y2, x1, x2) =ms.mask_green_corner(imgs)   
         gen_missing = self.generator.predict(masked_imgs)
 
         imgs = 0.5 * imgs + 0.5
@@ -181,7 +192,7 @@ class ContextEncoder():
             axs[1,i].imshow(masked_imgs[i, :,:])
             axs[1,i].axis('off')
             filled_in = imgs[i].copy()
-            filled_in[x1[i]:x2[i], y1[i]:y2[i], :] = gen_missing[i]
+            filled_in[x1:x2, y1:y2, :] = gen_missing[i]
             axs[2,i].imshow(filled_in)
             axs[2,i].axis('off')
         fig.savefig("images/cifar_%d.png" % epoch)
@@ -194,5 +205,5 @@ class ContextEncoder():
 
 if __name__ == '__main__':
     context_encoder = ContextEncoder()
-    context_encoder.train(epochs=90000, batch_size=4, sample_interval=50)
+    context_encoder.train(epochs=9000, batch_size=96, sample_interval=50)
 

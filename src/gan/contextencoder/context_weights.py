@@ -1,27 +1,27 @@
 from keras.layers import Input, Dense, Reshape, Flatten, Dropout, multiply, GaussianNoise
 from keras.layers import BatchNormalization, Activation, Embedding, ZeroPadding2D
-from keras.layers import MaxPooling2D
+from keras.layers import MaxPooling2D, Permute
 from keras.layers.advanced_activations import LeakyReLU
-from keras.layers.convolutional import UpSampling2D, Conv2D
+from keras.layers.convolutional import UpSampling2D, Conv2D, Cropping2D
 from keras.models import Sequential, Model
 from keras.optimizers import Adam
 from keras import losses
 from keras.utils import to_categorical
 import keras.backend as K
+import numpy as np
 
 class Weight_model():
-    def __init__(self,img_rows,img_cols,mask_width,mask_height):
+    def __init__(self,img_rows,img_cols,mask_width,mask_height,corner=False):
         self.img_rows = img_rows 
         self.img_cols = img_cols 
         self.mask_width = mask_width
         self.mask_height = mask_height 
         self.channels = 3
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
-        self.missing_shape = (self.mask_width, self.mask_height, self.channels)
+        self.missing_shape = (self.mask_height, self.mask_width, self.channels)
+        self.corner=corner
    
     def build_generator_img_size(self):
-        # 170 * 215 
-
         model = Sequential()
 
         # Encoder
@@ -74,10 +74,26 @@ class Weight_model():
         model.add(Conv2D(32, kernel_size=3, padding="same"))
         model.add(Activation('relu'))        
         
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(Conv2D(self.channels, kernel_size=3, padding="same"))
-        model.add(Activation('tanh'))
 
+        model.add(BatchNormalization(momentum=0.8))
+        model.add(Conv2D(16, kernel_size=3, padding="same"))
+        model.add(Activation('tanh'))
+        if self.corner:
+            scale_y=int(np.ceil(self.mask_height/(model.outputs[0].get_shape()[1:3].as_list()[0])))
+            scale_x=int(np.ceil(self.mask_height/(model.outputs[0].get_shape()[1:3].as_list()[1])))
+            model.add(UpSampling2D((scale_y,scale_x)))
+            height=model.outputs[0].get_shape()[1:3].as_list()[0]
+            width=model.outputs[0].get_shape()[1:3].as_list()[1]
+            target_height=(height-self.mask_height)/2
+            target_width=(width-self.mask_width)/2
+            
+            #MIGHT BE WRONG
+            model.add(Cropping2D((
+                (int(np.ceil(target_height)),int(np.floor(target_height))),
+                (int(np.ceil(target_width)),int(np.floor(target_width))))))
+
+        model.add(Conv2D(8, kernel_size=3, strides=1, padding="same",activation='relu'))
+        model.add(Conv2D(self.channels, kernel_size=3, strides=1, padding="same",activation='tanh'))
         model.summary()
 
         masked_img = Input(shape=self.img_shape)

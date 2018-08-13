@@ -88,8 +88,6 @@ def add_green_suare(input_img):
     template = cv2.imread(folder+random.choice(os.listdir(folder)))
     template = cv2.resize(template, template_shape)
     template = cv2.cvtColor(template, cv2.COLOR_BGR2RGB)
-    plt.imshow(template)
-    plt.show()
     
     """
     (34, 382) (250, 554)
@@ -97,7 +95,7 @@ def add_green_suare(input_img):
     
     """
     output_img=input_img.copy()
-    output_img[382:554,34:250]=template
+    output_img[382:554,34:250]=-template
 
     return input_img,output_img
 
@@ -111,7 +109,7 @@ if __name__=='__main__':
     #    a=plotload.load_one_img((576,720), dest='green', crop=False, glare=False,printable=True)
     #    _make_square_from_green_img(a)
     #_find_dims(a)
-    b=plotload.load_one_img((576,720), dest='none', crop=False, glare=False,printable=True)
+    b=plotload.load_one_img((576,720), dest='none',printable=True)
     c,d=add_green_suare(b)
     plt.imshow(c)
     plt.show()

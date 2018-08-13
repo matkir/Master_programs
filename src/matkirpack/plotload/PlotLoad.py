@@ -122,8 +122,10 @@ def load_polyp_batch(img_shape,batch_size,data_type=None,rot=False,crop=True,gla
             gray = cv2.cvtColor(cv2.imread(path),cv2.COLOR_BGR2GRAY)
             save=_crop_img(save,gray)
         save=cv2.resize(save,(img_shape[1],img_shape[0]))
-        
-        r=np.random.choice([0,90,180,270],p=[0.7,0.1,0.1,0.1])
+        if rot:
+            r=np.random.choice([0,90,180,270],p=[0.7,0.1,0.1,0.1])
+        else:
+            r=0
         if r !=0:
             M = cv2.getRotationMatrix2D((img_shape[1]/2,img_shape[0]/2),r,1)
             dst = cv2.warpAffine(save,M,(img_shape[1],img_shape[0]))
