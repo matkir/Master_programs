@@ -104,7 +104,7 @@ class ContextEncoder():
 
             # Select a random half batch of images
                 
-            if epoch%10==0:
+            if epoch%100==0:
                 print(f"most used picture was traned on {max(numtimes)} times")
                 numtimes=np.zeros(batch_size)        
                 X_train=plotload.load_polyp_batch(self.img_shape, batch_size, data_type='none')
@@ -205,5 +205,5 @@ class ContextEncoder():
 
 if __name__ == '__main__':
     context_encoder = ContextEncoder()
-    context_encoder.train(epochs=9000, batch_size=96, sample_interval=50)
+    context_encoder.train(epochs=10000, batch_size=1024, sample_interval=100)
 

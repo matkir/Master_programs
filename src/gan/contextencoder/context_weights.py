@@ -22,6 +22,7 @@ class Weight_model():
         self.corner=corner
    
     def build_generator_img_size(self):
+        """
         def residual_block(x,channels_out, strides=(1, 1),):
             #NOTE, not in use
             shortcut=x
@@ -30,7 +31,7 @@ class Weight_model():
             x3=x2(BatchNormalization(momentum=0.8))
             x4 = layers.add([shortcut, x3])
             return x4
-            
+        """            
         model = Sequential()
 
         # Encoder
@@ -46,46 +47,34 @@ class Weight_model():
         model.add(LeakyReLU(alpha=0.2))
         model.add(BatchNormalization(momentum=0.8))   
         
-        model.add(Conv2D(32, kernel_size=3, strides=3, padding="same"))
+        model.add(Conv2D(64, kernel_size=3, strides=3, padding="same"))
         model.add(LeakyReLU(alpha=0.2))
         model.add(BatchNormalization(momentum=0.8))
         
-        model.add(Conv2D(64, kernel_size=3, strides=2, padding="same"))
+        model.add(Conv2D(128, kernel_size=3, strides=2, padding="same"))
         model.add(LeakyReLU(alpha=0.2))
         model.add(BatchNormalization(momentum=0.8))
         
-        model.add(Conv2D(64, kernel_size=3, strides=2, padding="same"))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(BatchNormalization(momentum=0.8))
-
-        model.add(Conv2D(128, kernel_size=1, strides=2, padding="same"))
-        model.add(LeakyReLU(alpha=0.2))
        
         # Dropout
-        model.add(Dropout(0.5))
+        #model.add(Dropout(0.5))
 
         # Decoder
+        
+      
+        model.add(BatchNormalization(momentum=0.8))
         model.add(UpSampling2D())
         model.add(Conv2D(128, kernel_size=3, padding="same"))
         model.add(Activation('relu'))
         
+        model.add(BatchNormalization(momentum=0.8))
         model.add(UpSampling2D())
         model.add(Conv2D(64, kernel_size=3, padding="same"))
-        model.add(Activation('relu'))
-       
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(UpSampling2D())
-        model.add(Conv2D(32, kernel_size=3, padding="same"))
-        model.add(Activation('relu'))
-        
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(UpSampling2D())
-        model.add(Conv2D(32, kernel_size=3, padding="same"))
         model.add(Activation('relu'))        
         
 
         model.add(BatchNormalization(momentum=0.8))
-        model.add(Conv2D(16, kernel_size=3, padding="same"))
+        model.add(Conv2D(32, kernel_size=3, padding="same"))
         model.add(Activation('tanh'))
         if self.corner:
             scale_y=int(np.ceil(self.mask_height/(model.outputs[0].get_shape()[1:3].as_list()[0])))
@@ -101,8 +90,9 @@ class Weight_model():
                 (int(np.ceil(target_height)),int(np.floor(target_height))),
                 (int(np.ceil(target_width)),int(np.floor(target_width))))))
 
-        model.add(Conv2D(8, kernel_size=5, strides=1, padding="same",activation='relu'))
-        model.add(Conv2D(8, kernel_size=3, strides=1, padding="same",activation='relu'))
+        model.add(Conv2D(32, kernel_size=5, strides=1, padding="same",activation='relu'))
+        model.add(Conv2D(32, kernel_size=3, strides=1, padding="same",activation='relu'))
+        model.add(Conv2D(16, kernel_size=3, strides=1, padding="same",activation='relu'))
         model.add(Conv2D(8, kernel_size=3, strides=1, padding="same",activation='relu'))
         model.add(Conv2D(self.channels, kernel_size=3, strides=1, padding="same",activation='tanh'))
         model.summary()
