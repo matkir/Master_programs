@@ -22,6 +22,15 @@ class Weight_model():
         self.corner=corner
    
     def build_generator_img_size(self):
+        def residual_block(x,channels_out, strides=(1, 1),):
+            #NOTE, not in use
+            shortcut=x
+            x1=x(Conv2D(channels_out, kernel_size=3, strides=strides, padding="same")))
+            x2=x1(LeakyReLU(alpha=0.2))
+            x3=x2(BatchNormalization(momentum=0.8))
+            x4 = layers.add([shortcut, x3])
+            return x4
+            
         model = Sequential()
 
         # Encoder
@@ -92,6 +101,8 @@ class Weight_model():
                 (int(np.ceil(target_height)),int(np.floor(target_height))),
                 (int(np.ceil(target_width)),int(np.floor(target_width))))))
 
+        model.add(Conv2D(8, kernel_size=5, strides=1, padding="same",activation='relu'))
+        model.add(Conv2D(8, kernel_size=3, strides=1, padding="same",activation='relu'))
         model.add(Conv2D(8, kernel_size=3, strides=1, padding="same",activation='relu'))
         model.add(Conv2D(self.channels, kernel_size=3, strides=1, padding="same",activation='tanh'))
         model.summary()
