@@ -205,5 +205,7 @@ class ContextEncoder():
 
 if __name__ == '__main__':
     context_encoder = ContextEncoder()
+    imgs=plotload.load_polyp_batch((576//6,720//6,3), 4, data_type='green', crop=False)    
+    context_encoder.sample_images(2, imgs)
     context_encoder.train(epochs=10000, batch_size=1024, sample_interval=100)
 
