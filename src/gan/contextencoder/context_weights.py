@@ -57,7 +57,7 @@ class Weight_model():
         
        
         # Dropout
-        #model.add(Dropout(0.5))
+        model.add(Dropout(0.5))
 
         # Decoder
         

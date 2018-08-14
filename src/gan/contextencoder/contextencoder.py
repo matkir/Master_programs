@@ -22,8 +22,8 @@ import numpy as np
 
 class ContextEncoder():
     def __init__(self):
-        self.img_rows = 720//6#8*64//2#32
-        self.img_cols = 576//6#8*64//2#32
+        self.img_rows = 720//4#8*64//2#32
+        self.img_cols = 576//4#8*64//2#32
         self.channels = 3
         self.img_shape = (self.img_cols, self.img_rows, self.channels)
 
@@ -107,7 +107,7 @@ class ContextEncoder():
             if epoch%100==0:
                 print(f"most used picture was traned on {max(numtimes)} times")
                 numtimes=np.zeros(batch_size)        
-                X_train=plotload.load_polyp_batch(self.img_shape, batch_size, data_type='none')
+                X_train=plotload.load_polyp_batch(self.img_shape, batch_size, data_type='none',crop=True)
             if epoch%50==0 and not corner:
                 #after 50 itterations we flip the images, to make the set 2x times as large. sorry for not vectorizing
                 for i in range(batch_size):
@@ -170,7 +170,7 @@ class ContextEncoder():
                 # Select a random half batch of images
                 imgs=plotload.load_polyp_batch(self.img_shape, 4, 
                                          data_type='green', 
-                                         crop=False)
+                                         crop=True)
                 self.sample_images(epoch, imgs)
             if epoch % (sample_interval*5) == 0:
                 self.save_model()   
@@ -205,5 +205,5 @@ class ContextEncoder():
 
 if __name__ == '__main__':
     context_encoder = ContextEncoder()
-    context_encoder.train(epochs=10000, batch_size=1024, sample_interval=100)
+    context_encoder.train(epochs=2000, batch_size=320, sample_interval=100)
 
