@@ -8,7 +8,6 @@ from scipy import stats
 from keras.optimizers import Adam
 from tqdm import tqdm
 
-os.environ['CUDA_VISIBLE_DEVICES'] = ''
 
 class AE():
      def __init__(self):

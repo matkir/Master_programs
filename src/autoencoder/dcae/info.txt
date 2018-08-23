@@ -1,0 +1,4 @@
+mask 0
+epochs 1000
+batch_size 512
+save_interval 100
