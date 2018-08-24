@@ -1,4 +1,5 @@
 from __future__ import print_function, division
+from tqdm import tqdm
 
 from keras.layers import Input, Dense, Reshape, Flatten, Dropout, multiply, GaussianNoise
 from keras.layers import BatchNormalization, Activation, Embedding, ZeroPadding2D
@@ -29,10 +30,11 @@ class ContextEncoder():
         globals().update(self.info)  
         self.threshold=threshold
         self.img_cols = 256 # Original is ~576
-        self.img_rows = 256 # Original is ~720 
+        self.img_rows = 356 # Original is ~720 
         self.channels = 3   # RGB 
         self.img_shape=(self.img_cols,self.img_rows,self.channels)
-        self.model=None
+        self.combined=None
+        self.discriminator=None
         self.pretrained=False
     def load_model(self,adress):
         """
@@ -64,10 +66,10 @@ class ContextEncoder():
         builds a model to the object instead of loading one. 
         Uses AE_weights.py as model
         """
-        if self.model!=None:
+        if self.combined!=None:
             print("Warning: overriding a loaded model")
-        wm=Weight_model(self.img_shape)
-        self.model=wm.build_AE()  
+        wm=Weight_model(self.img_cols,self.img_rows)
+        self.discriminator,self.generator,self.combined=wm.build_CE()  
         
     def set_training_info(self):
         self.info={}
@@ -109,96 +111,30 @@ class ContextEncoder():
     
     
         
-    def extra(self):
-        if '-corner' in sys.argv:
-            dummy=plotload.load_one_img(self.img_shape, dest='none',extra_dim=True)
-            a, b, dims = ms.mask_green_corner(dummy)
-            self.mask_width = dims[3]-dims[2]
-            self.mask_height = dims[1]-dims[0]
-            corner=True
-        else:        
-            self.mask_width = 62#208
-            self.mask_height = 51#280
-            corner=False
-        
-        self.missing_shape = (self.mask_height, self.mask_width, self.channels)
-        self.model=Weight_model(self.img_cols, self.img_rows, self.mask_height,self.mask_width,corner)
-
-        optimizer = Adam(0.0002, 0.5)
-        
-        #Build and compile the discriminator
-        self.discriminator = self.model.build_discriminator()
-        self.discriminator.compile(loss='binary_crossentropy',
-            optimizer=optimizer,
-            metrics=['accuracy'])
-
-        # Build and compile the generator
-        self.generator = self.model.build_generator_img_size()
-        self.generator.compile(loss=['binary_crossentropy'],
-            optimizer=optimizer)
-
-        if '-weights' in sys.argv:
-            print("loading old weights")
-            self.generator.load_weights("saved_model/generator_weigths.h5")
-            self.discriminator.load_weights("saved_model/discriminator_weigths.h5")
-        # The generator takes noise as input and generates the missing
-        # part of the image
-        masked_img = Input(shape=self.img_shape)
-        gen_missing = self.generator(masked_img)
-
-        # For the combined model we will only train the generator
-        self.discriminator.trainable = False
-
-        # The discriminator takes generated images as input and determines
-        # if it is generated or if it is a real image
-        valid = self.discriminator(gen_missing)
-
-        # The combined model  (stacked generator and discriminator) takes
-        # masked_img as input => generates missing image => determines validity
-        self.combined = Model(masked_img , [gen_missing, valid])
-        self.combined.compile(loss=['mse', 'binary_crossentropy'],
-            loss_weights=[0.7, 0.3],
-            optimizer=optimizer)
-        if "-save" in sys.argv:
-            self.generator.save("saved_model/generator.h5")
-            self.discriminator.save("saved_model/discriminator.h5")
 
 
-
-    def train(self, epochs, batch_size=128, sample_interval=50):
+    def train(self):
+        if self.info==None:
+            print("Warning no info found, prompting for info")
+            self.set_training_info()
+        globals().update(self.info)
+        if self.combined==None:
+            print("Error: no model loaded")
+            return
+        if self.pretrained==True:
+            print("Warning: model has pretrained weights")
         half_batch = int(batch_size / 2)
-
-        """
-        X_train=plotload.load_polyp_data(self.img_shape)
-        """
-        soft= True if '-soft' in sys.argv else False
-        corner= True if '-corner' in sys.argv else False
-        numtimes=np.zeros(batch_size)
-        from keras.callbacks import TensorBoard
-        board=TensorBoard()
-        board.set_model(self.discriminator)
-        for epoch in range(epochs):
-
-
+        for epoch in tqdm(range(epochs)):                
+        
             # ---------------------
             #  Train Discriminator
             # ---------------------
 
-            # Select a random half batch of images
                 
-            if epoch%100==0:
-                print(f"most used picture was traned on {max(numtimes)} times")
-                numtimes=np.zeros(batch_size)        
-                X_train=plotload.load_polyp_batch(self.img_shape, batch_size, data_type='none',crop=True)
-            if epoch%50==0 and not corner:
-                #after 50 itterations we flip the images, to make the set 2x times as large. sorry for not vectorizing
-                for i in range(batch_size):
-                    X_train[i]=np.fliplr(X_train[i])
+            X_train=plotload.load_polyp_batch(self.img_shape, batch_size, data_type='none',crop=True)
             idx = np.random.randint(0, X_train.shape[0], half_batch)
             imgs = X_train[idx]
 
-            numtimes[idx]+=1 #to count num of times each pic was trained on
-            
             if corner:    
                 masked_imgs, missing, _ = ms.mask_green_corner(imgs)
             else:
@@ -221,6 +157,7 @@ class ContextEncoder():
                 placeholder=valid
                 valid=fake
                 fake=placeholder
+
             # Train the discriminator
             d_loss_real = self.discriminator.train_on_batch(missing, valid)
             d_loss_fake = self.discriminator.train_on_batch(gen_missing, fake)
@@ -229,6 +166,7 @@ class ContextEncoder():
             # ---------------------
             #  Train Generator
             # ---------------------
+            
             # Select a random half batch of images
             idx = np.random.randint(0, X_train.shape[0], batch_size)
             imgs = X_train[idx]
@@ -247,15 +185,21 @@ class ContextEncoder():
             # Plot the progress
             print ("%d [D loss: %f, acc: %.2f%%] [G loss: %f, mse: %f]" % (epoch, d_loss[0], 100*d_loss[1], g_loss[0], g_loss[1]))
 
-            # If at save interval => save generated image samples
-            if epoch % sample_interval == 0:
-                # Select a random half batch of images
-                imgs=plotload.load_polyp_batch(self.img_shape, 4, 
+            if g_loss[1]<self.threshold:
+                self.threshold=g_loss[1]
+                self.model.save(f"models/CE-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}.h5")   
+                self.model.save_weights(f"models/CE-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}-w.h5") 
+                
+    def extra():
+        # If at save interval => save generated image samples
+        if epoch % sample_interval == 0:
+            # Select a random half batch of images
+            imgs=plotload.load_polyp_batch(self.img_shape, 4, 
                                          data_type='green', 
                                          crop=True)
-                self.sample_images(epoch, imgs)
-            if epoch % (sample_interval*5) == 0:
-                self.save_model()   
+            self.sample_images(epoch, imgs)
+ 
+        
     def sample_images(self, epoch, imgs):
         r, c = 3, 4
 
@@ -280,16 +224,16 @@ class ContextEncoder():
         fig.savefig("images/cifar_%d.png" % epoch)
         plt.close()
 
-    def save_model(self):
-        self.generator.save_weights("saved_model/generator_weigths.h5")
-        self.discriminator.save_weights("saved_model/discriminator_weigths.h5")
-
+   
 
 if __name__ == '__main__':
     context_encoder = ContextEncoder()
-    context_encoder.train(epochs=2000, batch_size=320, sample_interval=100)
-    imgs=plotload.load_polyp_batch((576//6,720//6,3), 4, data_type='green', crop=False)    
-    context_encoder.sample_images(2, imgs)
-    context_encoder.train(epochs=10000, batch_size=1024, sample_interval=100)
+    context_encoder.build_model()
+    context_encoder.train()
+    
+    #context_encoder.train(epochs=2000, batch_size=320, sample_interval=100)
+    #imgs=plotload.load_polyp_batch((576//6,720//6,3), 4, data_type='green', crop=False)    
+    #context_encoder.sample_images(2, imgs)
+    #context_encoder.train(epochs=10000, batch_size=1024, sample_interval=100)
 
 

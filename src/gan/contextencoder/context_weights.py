@@ -9,7 +9,8 @@ from keras import losses
 from keras.utils import to_categorical
 import keras.backend as K
 import numpy as np
-
+import plotload
+import masker
 class Weight_model():
     def __init__(self,img_rows,img_cols,corner=True):
         self.img_cols = img_cols 
@@ -18,15 +19,14 @@ class Weight_model():
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
         if corner:
             dummy=plotload.load_one_img(self.img_shape, dest='none',extra_dim=True)
-            a, b, dims = ms.mask_green_corner(dummy)
+            a, b, dims = masker.mask_green_corner(dummy)
             self.mask_width = dims[3]-dims[2]
             self.mask_height = dims[1]-dims[0]
         else:        
             self.mask_width = 62#208
             self.mask_height = 51#280
+        self.corner=corner
         
-        self.mask_width = mask_width
-        self.mask_height = mask_height 
         self.missing_shape = (self.mask_height, self.mask_width, self.channels)
    
     def build_generator_img_size(self):
@@ -77,18 +77,19 @@ class Weight_model():
         model.add(Activation('tanh'))
         if self.corner:
             scale_y=int(np.ceil(self.mask_height/(model.outputs[0].get_shape()[1:3].as_list()[0])))
-            scale_x=int(np.ceil(self.mask_height/(model.outputs[0].get_shape()[1:3].as_list()[1])))
+            scale_x=int(np.ceil(self.mask_width/(model.outputs[0].get_shape()[1:3].as_list()[1])))
             model.add(UpSampling2D((scale_y,scale_x)))
             height=model.outputs[0].get_shape()[1:3].as_list()[0]
             width=model.outputs[0].get_shape()[1:3].as_list()[1]
             target_height=(height-self.mask_height)/2
             target_width=(width-self.mask_width)/2
             
-            #MIGHT BE WRONG, but probably not, lol
+            #MIGHT BE WRONG, but probably not, lol, nevermind!
             model.add(Cropping2D((
                 (int(np.ceil(target_height)),int(np.floor(target_height))),
-                (int(np.ceil(target_width)),int(np.floor(target_width))))))
-
+                (int(np.ceil(target_width)),int(np.floor(target_width)))
+            )))
+        model.summary()
         model.add(Conv2D(32, kernel_size=5, strides=1, padding="same",activation='relu'))
         model.add(Conv2D(32, kernel_size=3, strides=1, padding="same",activation='relu'))
         model.add(Conv2D(16, kernel_size=3, strides=1, padding="same",activation='relu'))
@@ -140,17 +141,17 @@ class Weight_model():
         return Model(img, validity)
 
 
-    def contextencoder():
+    def build_CE(self):
         optimizer = Adam(0.0002, 0.5)
         
         #Build and compile the discriminator
-        self.discriminator = build_discriminator()
+        self.discriminator = self.build_discriminator()
         self.discriminator.compile(loss='binary_crossentropy',
             optimizer=optimizer,
             metrics=['accuracy'])
 
         # Build and compile the generator
-        self.generator = build_generator_img_size()
+        self.generator = self.build_generator_img_size()
         #self.generator.compile(loss=['binary_crossentropy'],
         #    optimizer=optimizer)
 
@@ -172,7 +173,7 @@ class Weight_model():
         self.combined.compile(loss=['mse', 'binary_crossentropy'],
             loss_weights=[0.7, 0.3],
             optimizer=optimizer)        
-
+        return self.discriminator,self.generator,self.combined
 
 if __name__=='__main__':
     print("Usage: Same weights used by all programs")
