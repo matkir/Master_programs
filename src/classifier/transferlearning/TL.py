@@ -7,7 +7,7 @@ from keras.optimizers import Adam
 from keras import backend as k 
 from keras.callbacks import ModelCheckpoint, LearningRateScheduler, TensorBoard, EarlyStopping
 import os
-
+import ..autoencoder.dcae as auto
 
 class TL():
     def __init__(self):
@@ -29,6 +29,7 @@ class TL():
         self.batch_size = 20
         
     def train(self):
+        a=Autoencoder(self.img_cols,self.img_rows)
         
         train_datagen = ImageDataGenerator(
             rescale = 1./255,
@@ -39,7 +40,8 @@ class TL():
             width_shift_range = 0.3,
             height_shift_range=0.3,
             rotation_range=30,
-            validation_split=0.1)
+            validation_split=0.1,
+            preprocessing_function=a)
         
         val_datagen = ImageDataGenerator(
             rescale = 1./255,

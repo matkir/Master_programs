@@ -2,6 +2,7 @@ import numpy as np
 from keras.models import load_model
 
 
+
 class Prepros():
     def __init__(self,img_size,algorithm=None):
         self.img_size=img_size
@@ -26,5 +27,6 @@ class Prepros():
             print(f"incomatible img size:\nGot {img.shape[0:2]}\nExpected {self.img_size}")
             assert False
         return self.model.predict(img)
-        
-Prepros((1,1),algorithm=["AE","c"])
+
+Prepros((1,1))
+Prepros((1,1),algorithm=["AE","c"])        

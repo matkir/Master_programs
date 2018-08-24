@@ -1,5 +1,9 @@
 from keras.models import load_model
-from AE_weights import Weight_model
+if __name__=='__main__':
+    from AE_weights import Weight_model
+else:
+    from . import Weight_model
+    
 import plotload
 import cutter
 import numpy as np
@@ -8,12 +12,16 @@ class Autoencoder():
         """
         Initializes the autoencoder. 
         """
-        self.img_cols = 576//2 # Original is ~576
-        self.img_rows = 720//2 # Original is ~720 
+        self.set_training_info()
+        globals().update(self.info)  
+        self.threshold=threshold
+        self.img_cols = 256 # Original is ~576
+        self.img_rows = 256 # Original is ~720 
         self.channels = 3   # RGB 
         self.img_shape=(self.img_cols,self.img_rows,self.channels)
         self.model=None
         self.pretrained=False
+        
     def load_model(self,adress):
         """
         loads a model to the object instead of creating one. 
@@ -52,8 +60,12 @@ class Autoencoder():
         
     def set_training_info(self):
         self.info={}
+        import sys
         try:
-            choise=int(input("press 1 for last run or 2 for info.txt "))
+            if len(sys.argv)==1:
+                choise=2
+            else:
+                choise=int(input("press 1 for last run or 2 for info.txt "))
         except:
             choise=False
         
@@ -64,7 +76,10 @@ class Autoencoder():
             with open("info.txt") as f:
                 for line in f:
                     (key, val) = line.split()
-                    self.info[key] = int(val)
+                    try:
+                        self.info[key] = int(val)
+                    except:
+                        self.info[key] = float(val)
             np.save("temp_info.npy", self.info)
             return
         else:        
@@ -93,22 +108,40 @@ class Autoencoder():
             return
         if self.pretrained==True:
             print("Warning: model has pretrained weights")
-         
-        for epoch in range(epochs):
-            print("cool")
+        from tqdm import tqdm
+        for epoch in tqdm(range(epochs)):
             X_train=plotload.load_polyp_batch(self.img_shape, batch_size)
             if mask==0:
-                X_train,Y_train=cutter.add_green_suare(X_train)
+                Y_train,X_train=cutter.add_green_suare(X_train)
             else:
                 print("Not yet implimented")
-            print(self.model.train_on_batch(X_train, Y_train))
-
+            cur_loss=self.model.train_on_batch(X_train, Y_train)
+            
+            if cur_loss<self.threshold:
+                self.threshold=cur_loss
+                self.model.save(f"models/AE-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if mask==0 else 'n'}.h5")   
+                self.model.save_weights(f"models/AE-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if mask==0 else 'n'}-w.h5")   
+        
             
     def build_wrapper(self):
-        pass
+        """
+        Returns a func that works as a complete preprocsess tool
+        """
+        if mask==0:
+            if self.model==None:
+                print("no model loaded")
+                assert False
+            def ret(input_img):
+                if not cutter.is_green(input_img):
+                    return input_img
+                img=input_img.copy()
+                y1,y2,x1,x2=cutter.find_square_coords(input_img)
+                prediced=np.squeeze(self.model.predict(img),0)
+                img=np.squeeze(img,0)
+                img[y1:y2,x1:x2]=prediced[y1:y2,x1:x2]
+                return np.expand_dims(img,0)
+        else:
+            print("Not yet implimented")
+
+        return ret
     
-print("cool")
-a=Autoencoder(10,10)
-a.set_training_info()
-a.build_model()
-a.train_model()

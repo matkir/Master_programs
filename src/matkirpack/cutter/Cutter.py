@@ -28,9 +28,13 @@ def _make_square_from_green_img(input_img,show=False):
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     if(top_left[0]<50 and top_left[1]<400):
         cv2.imwrite(folder+filename+'.jpg', img*255)
-    print()
-
-
+def is_green(input_img):
+    a,b,c,d = find_square_coords(input_img)
+    if len(input_img.shape)==4:
+        input_img=np.squeeze(input_img,0)
+    if(input_img[(a+b)//2,(c+d)//2,0]<0 and input_img[(a+b)//2,(c+d)//2,1]>0):
+        return True
+    return False
 def _find_dims(input_img,show=False):
     """
         finds the posisition of a green square located in an image.    
@@ -66,7 +70,13 @@ def _find_dims(input_img,show=False):
         plt.imshow(a,cmap = 'gray')
         plt.show()
     return top_left,bottom_right
-    
+
+def find_square_coords(input_img):
+    template_shape = (int(input_img.shape[2]*0.3),int(input_img.shape[1]*0.3))    
+    posx=int(382/576*input_img.shape[1])
+    posy=int(34/720*input_img.shape[2])
+    return posx,posx+template_shape[0],posy,posy+template_shape[1]
+         
 def add_green_suare(input_img):
     if len(input_img.shape)==4:
         img_count=input_img.shape[0]
@@ -112,7 +122,7 @@ def add_green_suare(input_img):
     
     output_img=input_img.copy()
     for i in range(img_count):
-        output_img[i,pos[0]:pos[1],pos[2]:pos[3]]=template[i]
+        output_img[i,pos[0]:pos[0]+template_shape[0],pos[2]:pos[2]+template_shape[1]]=template[i]
 
     return input_img,output_img
 
