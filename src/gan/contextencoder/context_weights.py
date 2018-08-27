@@ -11,6 +11,7 @@ import keras.backend as K
 import numpy as np
 import plotload
 import masker
+import cutter
 class Weight_model():
     def __init__(self,img_rows,img_cols,corner=True):
         self.img_cols = img_cols 
@@ -18,10 +19,10 @@ class Weight_model():
         self.channels = 3
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
         if corner:
-            dummy=plotload.load_one_img(self.img_shape, dest='none',extra_dim=True)
-            a, b, dims = masker.mask_green_corner(dummy)
-            self.mask_width = dims[3]-dims[2]
-            self.mask_height = dims[1]-dims[0]
+            dummy=plotload.load_one_img(self.img_shape, dest='green',extra_dim=True)
+            self.dims =cutter.find_square_coords(dummy)
+            self.mask_width = self.dims[3]-self.dims[2]
+            self.mask_height = self.dims[1]-self.dims[0]
         else:        
             self.mask_width = 62#208
             self.mask_height = 51#280
