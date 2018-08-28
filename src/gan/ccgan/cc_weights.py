@@ -95,8 +95,34 @@ class Weight_model():
     
         return Model(img,validity)
 
+    def build_model(self):
+        optimizer = Adam(0.0002, 0.5)
+        self.discriminator = self.model.build_discriminator()
+        self.generator = self.model.build_generator()
     
-
+        if '-weights' in sys.argv:
+            print("loading old weights")
+            self.generator.load_weights("saved_model/generator_weigths.h5")
+            self.discriminator.load_weights("saved_model/discriminator_weigths.h5")
+    
+        self.discriminator.compile(loss='binary_crossentropy',
+                                       optimizer=optimizer,
+                                       metrics=['accuracy'])
+        self.generator.compile(loss='binary_crossentropy',
+                                   optimizer=optimizer)
+    
+        masked_img = Input(shape=self.img_shape)
+        gen_img = self.generator(masked_img)
+    
+        self.discriminator.trainable = False
+    
+        valid= self.discriminator(gen_img)
+    
+        self.combined = Model(masked_img , [gen_img, valid])
+        self.combined.compile(loss=['mse', 'binary_crossentropy'],
+                                  loss_weights=[0.999, 0.001],
+                                  optimizer=optimizer)        
+        return self.discriminator,self.generator,self.combined
 
 if __name__=='__main__':
     print("Usage: Same weights used by all programs")
@@ -107,4 +133,3 @@ if __name__=='__main__':
     model=Weight_model(img_rows, img_cols, mask_width,mask_height)
     a=model.build_generator()
     a=model.build_discriminator()
-    print("")
