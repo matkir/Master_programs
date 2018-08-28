@@ -113,6 +113,10 @@ class CCgan():
                 masked_imgs, missing, mask = ms.mask_from_template(imgs)
             else:
                 masked_imgs, missing, mask = ms.mask_green_corner(imgs)
+                m=np.zeros(shape=imgs.shape)
+                for i in range(imgs.shape[0]):
+                    m[i,mask[0]:mask[1],mask[2]:mask[3]]=missing[i]
+                missing=m
 
             gen_fake = self.generator.predict(missing)
             gen_fake = ms.combine_imgs_with_mask(gen_fake, imgs, mask)
@@ -180,7 +184,20 @@ class CCgan():
                 img[y1:y2,x1:x2]=prediced[y1:y2,x1:x2]
                 return np.expand_dims(img,0)
         else:
-            print("Not yet implimented")
+            if self.generator==None:
+                print("no model loaded")
+                assert False
+            def ret(input_img):
+                if not cutter.is_green(input_img):
+                    return input_img
+                img=input_img.copy()
+                if len(img.shape)==3:
+                    img=np.expand_dims(img, 0) 
+                y1,y2,x1,x2=ContextEncoder.dims
+                prediced=np.squeeze(self.generator.predict(img),0)
+                img=np.squeeze(img,0)
+                img[y1:y2,x1:x2]=prediced[y1:y2,x1:x2]
+                return np.expand_dims(img,0)
 
         return ret                            
             

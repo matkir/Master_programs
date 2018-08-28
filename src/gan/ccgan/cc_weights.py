@@ -19,8 +19,8 @@ class Weight_model():
         self.img_cols = img_cols 
         self.channels = 3
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
-        self.gf=64
-        self.df=64
+        self.gf=16
+        self.df=16
         
         
     def build_generator(self):
