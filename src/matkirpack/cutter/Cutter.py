@@ -96,21 +96,21 @@ def find_square_coords(input_img):
     
         img=(input_img*127.5+127.5).astype(np.uint8)
         img=cv2.Canny(img[0], 0, 300)
-        minLineLength=img_cols//10
-        lines = cv2.HoughLinesP(image=img,rho=1,theta=np.pi/180, threshold=70,lines=np.array([]), minLineLength=minLineLength,maxLineGap=10)
+        minLineLength=img_cols*0.18
+        lines = cv2.HoughLinesP(image=img,rho=1,theta=np.pi/180, threshold=70,lines=np.array([]), minLineLength=minLineLength,maxLineGap=3)
         l2=[]
-        img2=np.zeros(shape=img.shape)
+        img2=np.squeeze(input_img[0].copy()*0.5+0.5)
+        plt.subplot(121)
         plt.imshow(img)
-        plt.show()
-        if len(lines)<2:
+        if lines is None:
             return False,False,False,False        
         for l in lines:
-            if l[0][0]<bordery and l[0][2]>bordery and l[0][1]>img_rows*0.6:
-                cv2.line(img2,(l[0][0],l[0][1]),(l[0][2],l[0][3]),(255,255,255),3)
+            if l[0][0]<bordery and l[0][2]>bordery and l[0][0]<img_rows*0.6 and l[0][2]<img_rows*0.4:
+                cv2.line(img2,(l[0][0],l[0][1]),(l[0][2],l[0][3]),(255,0,255),1)
                 l2.append(((l[0][2],l[0][3])))
                 l2.append(((l[0][0],l[0][1])))
-            if l[0][1]>borderx and l[0][3]<borderx and l[0][2]<img_cols*0.4:
-                cv2.line(img2,(l[0][0],l[0][1]),(l[0][2],l[0][3]),(255,255,255),3)
+            if l[0][1]>borderx and l[0][3]<borderx and l[0][1]>img_cols*0.4 and l[0][3]>img_cols*0.4:
+                cv2.line(img2,(l[0][0],l[0][1]),(l[0][2],l[0][3]),(255,0,255),1)
                 l2.append(((l[0][0],l[0][1])))
                 l2.append(((l[0][2],l[0][3])))
         if len(l2)<2:
@@ -118,7 +118,8 @@ def find_square_coords(input_img):
         bottom_left=(min(l2, key = lambda t: t[0])[0],(max(l2, key = lambda t: t[1]))[1])
         top_right=(max(l2, key = lambda t: t[0])[0],(min(l2, key = lambda t: t[1]))[1])
         
-        cv2.line(img2,bottom_left,top_right,(255,255,255),3) 
+        cv2.line(img2,bottom_left,top_right,(0,255,0),1) 
+        plt.subplot(122)
         plt.imshow(img2)
         plt.show()
         
@@ -181,6 +182,9 @@ if __name__=='__main__':
     #    _make_square_from_green_img(a)
     #_find_dims(a)
     b=plotload.load_polyp_batch((260,260,3), 10,data_type='green', crop=False)
+    find_square_coords(b)
+    
+    
     c,d=add_green_suare(b)
     b=plotload.load_polyp_batch((260,260,3), 10,data_type='none', crop=False)
     c,d=add_green_suare(b)

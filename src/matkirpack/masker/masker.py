@@ -3,7 +3,7 @@ import numpy as np
 import pygame, sys 
 from PIL import Image 
 import plotload as pl
-
+import cutter
 
 def mask_randomly_square(imgs,mask_height,mask_width,mask_val=0):
     """
@@ -42,21 +42,16 @@ def mask_green_corner(imgs,val=0):
     :return: (The masked imgs,the part that is removed,pos of the removed part)
     """
     img_num,img_cols,img_rows,img_channels=imgs.shape
-    box_coord=(int(0),int(0.35*img_rows),int(0.65*img_cols),int(img_cols))
-    
-    y1=box_coord[0]    
-    y2=box_coord[1]    
-    x1=box_coord[2]    
-    x2=box_coord[3]    
+    y1,y2,x1,x2=cutter.find_square_coords(imgs)
     
     
     
     masked_imgs = np.empty_like(imgs)
-    missing_parts = np.empty((img_num ,x2-x1 ,y2-y1 ,img_channels))
+    missing_parts = np.empty((img_num ,y2-y1 ,x2-x1 ,img_channels))
     for i, img in enumerate(imgs):
         masked_img = img.copy()
-        missing_parts[i] = masked_img[x1:x2, y1:y2, :].copy()
-        masked_img[x1:x2, y1:y2, :] = val
+        missing_parts[i] = masked_img[y1:y2, x1:x2, :].copy()
+        masked_img[y1:y2, x1:x2, :] = val
         masked_imgs[i] = masked_img
 
     return masked_imgs, missing_parts, (y1, y2, x1, x2)
@@ -96,6 +91,11 @@ def combine_imgs_with_mask(gen_img,org_img,mask):
     :param mask: a boolean array of either (1,col,row,channel) or (num_imgs,col,row,channel).
     :return: Img array with the same dims as org_img
     """
+    if isinstance(mask, tuple):
+        org_copy=org_img.copy()
+        for i in range(gen_img.shape[0]):
+            org_copy[i,mask[0]:mask[1],mask[2]:mask[3]]=gen_img[i,mask[0]:mask[1],mask[2]:mask[3]]
+        return org_copy        
     org_copy=org_img.copy()
     gen_copy=gen_img.copy()
     mask_copy=mask.copy()
@@ -111,7 +111,8 @@ def combine_imgs_with_mask(gen_img,org_img,mask):
     if len(mask_copy.shape)==2:
         mask_copy=np.expand_dims(mask_copy, 0)
         mask_copy=np.repeat(mask_copy, org_copy.shape[0], axis=0)
-        
+    
+
     #adding color dim
     mask_copy=np.expand_dims(mask_copy,-1)
     mask_copy=np.repeat(mask_copy, 3, axis=-1)
@@ -142,4 +143,3 @@ if __name__=='__main__':
     reconst=combine_imgs_with_mask(img2,img,template)
     #plt.imshow(0.5*reconst[0]+0.5)
     #plt.show()
-   
