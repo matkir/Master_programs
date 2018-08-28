@@ -97,13 +97,8 @@ class Weight_model():
 
     def build_model(self):
         optimizer = Adam(0.0002, 0.5)
-        self.discriminator = self.model.build_discriminator()
-        self.generator = self.model.build_generator()
-    
-        if '-weights' in sys.argv:
-            print("loading old weights")
-            self.generator.load_weights("saved_model/generator_weigths.h5")
-            self.discriminator.load_weights("saved_model/discriminator_weigths.h5")
+        self.discriminator = self.build_discriminator()
+        self.generator = self.build_generator()
     
         self.discriminator.compile(loss='binary_crossentropy',
                                        optimizer=optimizer,

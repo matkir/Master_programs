@@ -11,6 +11,7 @@ from selector import Selector
 import masker as ms
 import matplotlib.pyplot as plt
 import numpy as np
+from tqdm import tqdm
 class CCgan():
     def __init__(self,img_cols,img_rows):
         """
@@ -56,7 +57,7 @@ class CCgan():
         if self.combined!=None:
             print("Warning: overriding a loaded model")
         wm=Weight_model(self.img_cols,self.img_rows)
-        self.discriminator,self.generator,self.combined=wm.build_CCgan() 
+        self.discriminator,self.generator,self.combined=wm.build_model() 
     def set_training_info(self):
         self.info={}
         import sys
@@ -103,21 +104,18 @@ class CCgan():
             print("Warning: model has pretrained weights")
         half_batch = int(batch_size / 2)
         for epoch in tqdm(range(epochs)):
-            X_train=plotload.load_polyp_batch(self.img_shape, batch_size)
+            X_train=plotload.load_polyp_batch(self.img_shape, batch_size, data_type='green')
 
             idx = np.random.randint(0, X_train.shape[0], half_batch)
             imgs = X_train[idx]
 
-            if corner:
+            if not corner:
                 masked_imgs, missing, mask = ms.mask_from_template(imgs)
             else:
                 masked_imgs, missing, mask = ms.mask_green_corner(imgs)
 
             gen_fake = self.generator.predict(missing)
-            if corner:
-                print("not implemented")
-            else:
-                gen_fake = combine_imgs_with_mask(gen_fake, imgs, mask)
+            gen_fake = ms.combine_imgs_with_mask(gen_fake, imgs, mask)
 
 
             if soft:
@@ -162,89 +160,30 @@ class CCgan():
                 self.discriminator.save(f"models/CCgan-dic-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}.h5")   
                 self.combined.save(f"models/CCgan-com-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}.h5")   
                 self.combined.save_weights(f"models/CCgan-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}-w.h5") 
-                            
+    def build_wrapper(self):
+        """
+        Returns a func that works as a complete preprocsess tool
+        """
+        if mask==1:
+            if self.generator==None:
+                print("no model loaded")
+                assert False
+            def ret(input_img):
+                if not cutter.is_green(input_img):
+                    return input_img
+                img=input_img.copy()
+                if len(img.shape)==3:
+                    img=np.expand_dims(img, 0) 
+                y1,y2,x1,x2=ContextEncoder.dims
+                prediced=np.squeeze(self.generator.predict(img),0)
+                img=np.squeeze(img,0)
+                img[y1:y2,x1:x2]=prediced[y1:y2,x1:x2]
+                return np.expand_dims(img,0)
+        else:
+            print("Not yet implimented")
+
+        return ret                            
             
-class CCgan():
-    def __init__(self):
-        self.img_rows = 576//3#8*64//2#32
-        self.img_cols = 720//3#8*64//2#32
-        # mask idealy 170 * 215  
-        self.channels = 3
-        self.img_shape = (self.img_rows, self.img_cols, self.channels)
-        self.model=Weight_model(self.img_rows, self.img_cols)
-
-
-     
-
-
-   
-
-    def train(self, epochs, batch_size=2, save_interval=50):
-        from tqdm import tqdm
-        soft= True if '-soft' in sys.argv else False
-        half_batch=batch_size//2
-        from keras.callbacks import TensorBoard
-        board=TensorBoard(log_dir='./Graph', histogram_freq=0,write_graph=True, write_images=True)        
-        board.set_model(self.discriminator)
-        for epoch in tqdm(range(epochs)):
-            if epoch%100==0:
-                X_train=plotload.load_polyp_batch(self.img_shape, batch_size*5)
-
-
-            idx = np.random.randint(0, X_train.shape[0], half_batch)
-            imgs = X_train[idx]
-
-            masked_imgs, missing, mask = mask_from_template(imgs)
-            gen_fake = self.generator.predict(missing)
-            gen_fake = combine_imgs_with_mask(gen_fake, imgs, mask)
-
-
-            # SPESSSIELLE TING
-            if soft:
-                valid = 0.2*np.random.random_sample((half_batch,1))+0.9
-                fake = 0.1*np.random.random_sample((half_batch,1))
-            else:
-                valid = np.ones((half_batch, 1))
-                fake = np.zeros((half_batch, 1))
-
-            if epoch%120==0 and epoch!=0:
-                #small shakeup to get out of local minimas
-                placeholder=valid
-                valid=fake
-                fake=placeholder
-
-        
-            # Train the discriminator
-            d_loss_real = self.discriminator.train_on_batch(imgs, valid)
-            d_loss_fake = self.discriminator.train_on_batch(gen_fake, fake)
-            d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
-
-            # ---------------------
-            #  Train Generator
-            # ---------------------
-
-            # Select a random half batch of images
-            idx = np.random.randint(0, X_train.shape[0], batch_size)
-            imgs = X_train[idx]
-
-            masked_imgs, missing_parts, _ = mask_from_template(imgs)
-
-            valid = np.ones((batch_size, 1))
-
-            # Train the generator
-            g_loss = self.combined.train_on_batch(masked_imgs, [imgs, valid])
-
-            # Plot the progress
-            print ("%d [D loss: %f, acc: %.2f%%] [G loss: %f, mse: %f]" % (epoch, d_loss[0], 100*d_loss[1], g_loss[0], g_loss[1]))
-
-
-
-            if epoch % save_interval == 0:
-                idx = np.random.randint(0, X_train.shape[0], 6)
-                imgs = X_train[idx]
-                self.sample_images(epoch, imgs)
-            if epoch % (save_interval*5) == 0:
-                self.save_model() 
 
     def sample_images(self, epoch, imgs):
         r, c = 3, 6
@@ -268,15 +207,16 @@ class CCgan():
         fig.savefig("images/cc_%d.png" % epoch)
         plt.close()
 
-    def save_model(self):
-        self.generator.save_weights("saved_model/generator_weigths.h5")
-        self.discriminator.save_weights("saved_model/discriminator_weigths.h5")
+                
 
 
 
 if __name__ == '__main__':
-    cc = CCgan()
-    cc.train(epochs=300, batch_size=3, save_interval=1000)
+    cc = CCgan(256,256)
+    cc.build_model()
+    cc.train_model()
+    cc.build_wrapper()
+    
 
 
 
