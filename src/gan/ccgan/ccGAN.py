@@ -1,89 +1,127 @@
 from __future__ import print_function, division
-
-from keras.layers import Input, Dense, Reshape, Flatten, Dropout, multiply, GaussianNoise
-from keras.layers import BatchNormalization, Activation, Embedding, ZeroPadding2D
-from keras.layers import MaxPooling2D
-from keras.layers.advanced_activations import LeakyReLU
-from keras.layers.convolutional import UpSampling2D, Conv2D
-from keras.models import Sequential, Model
-from keras.optimizers import Adam
-from keras import losses
-from keras.utils import to_categorical
+if __name__=='__main__':
+    from cc_weights import Weight_model
+else:
+    from . import Weight_model
 import keras.backend as K
 import plotload
 import sys
-from cc_weights import Weight_model
 from selector import Selector
-from masker import mask_from_template,mask_randomly_square,mask_green_corner,combine_imgs_with_mask
+#from masker import mask_from_template,mask_randomly_square,mask_green_corner,combine_imgs_with_mask
+import masker as ms
 import matplotlib.pyplot as plt
-
 import numpy as np
-
+from tqdm import tqdm
 class CCgan():
-    def __init__(self):
-        self.img_rows = 576//3#8*64//2#32
-        self.img_cols = 720//3#8*64//2#32
-        # mask idealy 170 * 215  
-        self.channels = 3
-        self.img_shape = (self.img_rows, self.img_cols, self.channels)
-        self.model=Weight_model(self.img_rows, self.img_cols)
-        optimizer = Adam(0.0002, 0.5)
+    def __init__(self,img_cols,img_rows):
+        """
+        Initializes the autoencoder. 
+        """
+        self.set_training_info()
+        globals().update(self.info)  
+        self.threshold=threshold
+        self.img_cols = img_cols # Original is ~576
+        self.img_rows = img_rows # Original is ~720 
+        self.channels = 3   # RGB 
+        self.img_shape=(self.img_cols,self.img_rows,self.channels)
+        self.combined=None
+        self.discriminator=None
+        self.generator=None
+        self.pretrained=False
+    def load_model(self):
+        """
+        loads a model to the object instead of creating one. 
+        :param adress: string of adress to the file of type h5.
+        """
+        if self.combined!=None:
+            print("Warning: overriding a loaded model")
+        self.generator=load_model(f"models/CCgan-gen-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}.h5")   
+        self.discriminator=load_model(f"models/CCgan-dic-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}.h5")   
+        self.combined=load_model(f"models/CCgan-com-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}.h5")   
+    def load_model_weights(self):
+        if self.combined==None:
+            print("Error: no model in object")
+        else:
+            try:
+                self.combined.load_weights(f"models/CCgan-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}-w.h5")
+                self.pretrained=True
+            except e:
+                print("Error: weights could not be loaded")
+                print(e)
 
+    def build_model(self):
+        """
+        builds a model to the object instead of loading one. 
+        Uses AE_weights.py as model
+        """
+        if self.combined!=None:
+            print("Warning: overriding a loaded model")
+        wm=Weight_model(self.img_cols,self.img_rows)
+        self.discriminator,self.generator,self.combined=wm.build_model() 
+    def set_training_info(self):
+        self.info={}
+        import sys
+        try:
+            if len(sys.argv)==1:
+                choise=2
+            else:
+                choise=int(input("press 1 for last run or 2 for info.txt "))
+        except:
+            choise=False
+        
+        if choise==1:
+            self.info=np.load("temp_info.npy").item()
+            return
+        elif choise==2:
+            with open("info.txt") as f:
+                for line in f:
+                    (key, val) = line.split()
+                    try:
+                        self.info[key] = int(val)
+                    except:
+                        self.info[key] = float(val)
+            np.save("temp_info.npy", self.info)
+            return
+        else:        
+            self.info["mask"]=int(input("Mask [1] or corner [0]? "))
+            if self.info['mask']==1:
+                tmp=input("Mask adress? (default: /masks) ")
+                self.info["mask_folder"]=tmp if isinstance(tmp, str) else "/masks"
+            self.info["epochs"]=int(input("Number of epochs? "))
+            self.info["batch_size"]=int(input("Batch size? "))
+            self.info["save_interval"]=int(input("save interval? "))
+            np.save("temp_info.npy", self.info)    
 
-        self.discriminator = self.model.build_discriminator()
-        self.generator = self.model.build_generator()
-       
-        if '-weights' in sys.argv:
-            print("loading old weights")
-            self.generator.load_weights("saved_model/generator_weigths.h5")
-            self.discriminator.load_weights("saved_model/discriminator_weigths.h5")
-            
-        self.discriminator.compile(loss='binary_crossentropy',
-                                   optimizer=optimizer,
-                                   metrics=['accuracy'])
-        self.generator.compile(loss='binary_crossentropy',
-                               optimizer=optimizer)
-
-        masked_img = Input(shape=self.img_shape)
-        gen_img = self.generator(masked_img)
-
-        self.discriminator.trainable = False
-
-        valid= self.discriminator(gen_img)
-
-        self.combined = Model(masked_img , [gen_img, valid])
-        self.combined.compile(loss=['mse', 'binary_crossentropy'],
-                              loss_weights=[0.999, 0.001],
-                              optimizer=optimizer)        
-
-        if "-save" in sys.argv:
-            self.generator.save("saved_model/generator.h5")
-            self.discriminator.save("saved_model/discriminator.h5")        
-            sys.exit()
-
-   
-
-    def train(self, epochs, batch_size=2, save_interval=50):
-        from tqdm import tqdm
-        soft= True if '-soft' in sys.argv else False
-        half_batch=batch_size//2
-        from keras.callbacks import TensorBoard
-        board=TensorBoard(log_dir='./Graph', histogram_freq=0,write_graph=True, write_images=True)        
-        board.set_model(self.discriminator)
+    def train_model(self):
+        if self.info==None:
+            print("Warning no info found, prompting for info")
+            self.set_training_info()
+        globals().update(self.info)
+        if self.combined==None:
+            print("Error: no model loaded")
+            return
+        if self.pretrained==True:
+            print("Warning: model has pretrained weights")
+        half_batch = int(batch_size / 2)
         for epoch in tqdm(range(epochs)):
-            if epoch%100==0:
-                X_train=plotload.load_polyp_batch(self.img_shape, batch_size*5)
-
+            X_train=plotload.load_polyp_batch(self.img_shape, batch_size, data_type='green')
 
             idx = np.random.randint(0, X_train.shape[0], half_batch)
             imgs = X_train[idx]
 
-            masked_imgs, missing, mask = mask_from_template(imgs)
+            if not corner:
+                masked_imgs, missing, mask = ms.mask_from_template(imgs)
+            else:
+                masked_imgs, missing, mask = ms.mask_green_corner(imgs)
+                m=np.zeros(shape=imgs.shape)
+                for i in range(imgs.shape[0]):
+                    m[i,mask[0]:mask[1],mask[2]:mask[3]]=missing[i]
+                missing=m
+
             gen_fake = self.generator.predict(missing)
-            gen_fake = combine_imgs_with_mask(gen_fake, imgs, mask)
+            gen_fake = ms.combine_imgs_with_mask(gen_fake, imgs, mask)
 
 
-            # SPESSSIELLE TING
             if soft:
                 valid = 0.2*np.random.random_sample((half_batch,1))+0.9
                 fake = 0.1*np.random.random_sample((half_batch,1))
@@ -111,7 +149,7 @@ class CCgan():
             idx = np.random.randint(0, X_train.shape[0], batch_size)
             imgs = X_train[idx]
 
-            masked_imgs, missing_parts, _ = mask_from_template(imgs)
+            masked_imgs, missing_parts, _ = ms.mask_from_template(imgs)
 
             valid = np.ones((batch_size, 1))
 
@@ -120,15 +158,49 @@ class CCgan():
 
             # Plot the progress
             print ("%d [D loss: %f, acc: %.2f%%] [G loss: %f, mse: %f]" % (epoch, d_loss[0], 100*d_loss[1], g_loss[0], g_loss[1]))
+            if g_loss[1]<self.threshold:
+                self.threshold=g_loss[1]
+                self.generator.save(f"models/CCgan-gen-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}.h5")   
+                self.discriminator.save(f"models/CCgan-dic-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}.h5")   
+                self.combined.save(f"models/CCgan-com-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}.h5")   
+                self.combined.save_weights(f"models/CCgan-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}-w.h5") 
+    def build_wrapper(self):
+        """
+        Returns a func that works as a complete preprocsess tool
+        """
+        if mask==1:
+            if self.generator==None:
+                print("no model loaded")
+                assert False
+            def ret(input_img):
+                if not cutter.is_green(input_img):
+                    return input_img
+                img=input_img.copy()
+                if len(img.shape)==3:
+                    img=np.expand_dims(img, 0) 
+                y1,y2,x1,x2=ContextEncoder.dims
+                prediced=np.squeeze(self.generator.predict(img),0)
+                img=np.squeeze(img,0)
+                img[y1:y2,x1:x2]=prediced[y1:y2,x1:x2]
+                return np.expand_dims(img,0)
+        else:
+            if self.generator==None:
+                print("no model loaded")
+                assert False
+            def ret(input_img):
+                if not cutter.is_green(input_img):
+                    return input_img
+                img=input_img.copy()
+                if len(img.shape)==3:
+                    img=np.expand_dims(img, 0) 
+                y1,y2,x1,x2=ContextEncoder.dims
+                prediced=np.squeeze(self.generator.predict(img),0)
+                img=np.squeeze(img,0)
+                img[y1:y2,x1:x2]=prediced[y1:y2,x1:x2]
+                return np.expand_dims(img,0)
 
-
-
-            if epoch % save_interval == 0:
-                idx = np.random.randint(0, X_train.shape[0], 6)
-                imgs = X_train[idx]
-                self.sample_images(epoch, imgs)
-            if epoch % (save_interval*5) == 0:
-                self.save_model() 
+        return ret                            
+            
 
     def sample_images(self, epoch, imgs):
         r, c = 3, 6
@@ -152,15 +224,16 @@ class CCgan():
         fig.savefig("images/cc_%d.png" % epoch)
         plt.close()
 
-    def save_model(self):
-        self.generator.save_weights("saved_model/generator_weigths.h5")
-        self.discriminator.save_weights("saved_model/discriminator_weigths.h5")
+                
 
 
 
 if __name__ == '__main__':
-    cc = CCgan()
-    cc.train(epochs=300, batch_size=3, save_interval=1000)
+    cc = CCgan(256,256)
+    cc.build_model()
+    cc.train_model()
+    cc.build_wrapper()
+    
 
 
 
