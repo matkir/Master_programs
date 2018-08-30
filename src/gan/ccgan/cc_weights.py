@@ -96,26 +96,24 @@ class Weight_model():
         return Model(img,validity)
 
     def build_model(self):
-        optimizer = Adam(0.0002, 0.5)
+        optimizer = Adam()
         self.discriminator = self.build_discriminator()
         self.generator = self.build_generator()
     
         self.discriminator.compile(loss='binary_crossentropy',
-                                       optimizer=optimizer,
-                                       metrics=['accuracy'])
+                                optimizer=optimizer,
+                                metrics=['accuracy'])
         self.generator.compile(loss='binary_crossentropy',
-                                   optimizer=optimizer)
+                               optimizer=optimizer)
     
         masked_img = Input(shape=self.img_shape)
         gen_img = self.generator(masked_img)
-    
-        self.discriminator.trainable = False
     
         valid= self.discriminator(gen_img)
     
         self.combined = Model(masked_img , [gen_img, valid])
         self.combined.compile(loss=['mse', 'binary_crossentropy'],
-                                  loss_weights=[0.999, 0.001],
+                                  loss_weights=[0.1, 0.9],
                                   optimizer=optimizer)        
         return self.discriminator,self.generator,self.combined
 

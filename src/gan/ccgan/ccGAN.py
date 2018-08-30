@@ -3,6 +3,7 @@ if __name__=='__main__':
     from cc_weights import Weight_model
 else:
     from . import Weight_model
+from keras.models import load_model
 import keras.backend as K
 import plotload
 import sys
@@ -12,6 +13,8 @@ import masker as ms
 import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm
+import cutter
+import masker
 class CCgan():
     def __init__(self,img_cols,img_rows):
         """
@@ -24,6 +27,9 @@ class CCgan():
         self.img_rows = img_rows # Original is ~720 
         self.channels = 3   # RGB 
         self.img_shape=(self.img_cols,self.img_rows,self.channels)
+        if not mask:
+            dummy=plotload.load_one_img(self.img_shape, dest='green',extra_dim=True)
+            self.dims =cutter.find_square_coords(dummy)   
         self.combined=None
         self.discriminator=None
         self.generator=None
@@ -102,59 +108,63 @@ class CCgan():
             return
         if self.pretrained==True:
             print("Warning: model has pretrained weights")
-        half_batch = int(batch_size / 2)
+        half_batch = batch_size
         for epoch in tqdm(range(epochs)):
-            X_train=plotload.load_polyp_batch(self.img_shape, batch_size, data_type='green')
+            X_train=plotload.load_polyp_batch(self.img_shape, batch_size)
+            imgs = X_train
 
-            idx = np.random.randint(0, X_train.shape[0], half_batch)
-            imgs = X_train[idx]
-
-            if not corner:
-                masked_imgs, missing, mask = ms.mask_from_template(imgs)
-            else:
+            if corner:
                 masked_imgs, missing, mask = ms.mask_green_corner(imgs)
                 m=np.zeros(shape=imgs.shape)
                 for i in range(imgs.shape[0]):
                     m[i,mask[0]:mask[1],mask[2]:mask[3]]=missing[i]
                 missing=m
-
-            gen_fake = self.generator.predict(missing)
-            gen_fake = ms.combine_imgs_with_mask(gen_fake, imgs, mask)
-
-
+            else:
+                masked_imgs, missing, mask = ms.mask_from_template(imgs)            
+            
             if soft:
                 valid = 0.2*np.random.random_sample((half_batch,1))+0.9
                 fake = 0.1*np.random.random_sample((half_batch,1))
             else:
                 valid = np.ones((half_batch, 1))
                 fake = np.zeros((half_batch, 1))
+                
+            # ---------------------
+            #  Train Generator
+            # ---------------------
+            self.discriminator.trainable = False
 
+            valid = np.ones((batch_size, 1))
+        
+            # Train the generator
+            g_loss = self.combined.train_on_batch(masked_imgs, [imgs, valid])
+            
+            self.discriminator.trainable = True
+            # ---------------------
+            #  Train discriminator
+            # ---------------------
+           
+
+            gen_fake = self.generator.predict(masked_imgs)
+            gen_fake = ms.combine_imgs_with_mask(gen_fake, imgs, mask)
+            
             if epoch%120==0 and epoch!=0:
                 #small shakeup to get out of local minimas
                 placeholder=valid
                 valid=fake
                 fake=placeholder
 
-        
             # Train the discriminator
             d_loss_real = self.discriminator.train_on_batch(imgs, valid)
             d_loss_fake = self.discriminator.train_on_batch(gen_fake, fake)
             d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
 
-            # ---------------------
-            #  Train Generator
-            # ---------------------
+        
 
-            # Select a random half batch of images
-            idx = np.random.randint(0, X_train.shape[0], batch_size)
-            imgs = X_train[idx]
 
-            masked_imgs, missing_parts, _ = ms.mask_from_template(imgs)
 
-            valid = np.ones((batch_size, 1))
 
-            # Train the generator
-            g_loss = self.combined.train_on_batch(masked_imgs, [imgs, valid])
+
 
             # Plot the progress
             print ("%d [D loss: %f, acc: %.2f%%] [G loss: %f, mse: %f]" % (epoch, d_loss[0], 100*d_loss[1], g_loss[0], g_loss[1]))
@@ -169,35 +179,33 @@ class CCgan():
         Returns a func that works as a complete preprocsess tool
         """
         if mask==1:
-            if self.generator==None:
-                print("no model loaded")
-                assert False
-            def ret(input_img):
+            def ret(input_img,mask=None):
+                """
+                Without a corner, a mask must be added
+                """
                 if not cutter.is_green(input_img):
                     return input_img
+                if mask is None:
+                    mask=plotload.load_single_template(input_img.shape)
                 img=input_img.copy()
                 if len(img.shape)==3:
                     img=np.expand_dims(img, 0) 
-                y1,y2,x1,x2=ContextEncoder.dims
                 prediced=np.squeeze(self.generator.predict(img),0)
-                img=np.squeeze(img,0)
-                img[y1:y2,x1:x2]=prediced[y1:y2,x1:x2]
-                return np.expand_dims(img,0)
+                img=masker.combine_imgs_with_mask(prediced, img, mask)
+                return img
         else:
-            if self.generator==None:
-                print("no model loaded")
-                assert False
             def ret(input_img):
                 if not cutter.is_green(input_img):
                     return input_img
                 img=input_img.copy()
                 if len(img.shape)==3:
                     img=np.expand_dims(img, 0) 
-                y1,y2,x1,x2=ContextEncoder.dims
+                y1,y2,x1,x2=self.dims
+                img, _, _ = ms.mask_green_corner(img)
                 prediced=np.squeeze(self.generator.predict(img),0)
                 img=np.squeeze(img,0)
                 img[y1:y2,x1:x2]=prediced[y1:y2,x1:x2]
-                return np.expand_dims(img,0)
+                return img
 
         return ret                            
             
