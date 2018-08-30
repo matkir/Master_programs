@@ -7,7 +7,7 @@ from keras.optimizers import Adam
 from keras import backend as k 
 from keras.callbacks import ModelCheckpoint, LearningRateScheduler, TensorBoard, EarlyStopping
 import os
-import gan.contextencoder as auto
+import gan.ccgan as auto
 
 
 
@@ -31,12 +31,15 @@ class TL():
         self.batch_size = 20
         
     def train(self):
-        a=auto.ContextEncoder(self.img_cols,self.img_rows)
+        a=auto.CCgan(self.img_cols,self.img_rows)
         #a.build_model()
         #a.train_model()
         a.load_model()
         a.load_model_weights()
         prepro=a.build_wrapper()
+        import plotload
+        test=plotload.load_one_img((256,256),dest='green',crop=True)[0]
+        test2=prepro(test)
         train_datagen = ImageDataGenerator(
             rescale = 1./255,
             horizontal_flip = True,
