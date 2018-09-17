@@ -15,10 +15,12 @@ class Autoencoder():
         self.set_training_info()
         globals().update(self.info)  
         self.threshold=threshold
-        self.img_cols = 256 # Original is ~576
-        self.img_rows = 256 # Original is ~720 
+        self.img_cols = img_cols#256 # Original is ~576
+        self.img_rows = img_rows#256 # Original is ~720 
         self.channels = 3   # RGB 
         self.img_shape=(self.img_cols,self.img_rows,self.channels)
+        dummy=plotload.load_one_img(self.img_shape, dest='green',extra_dim=True)
+        self.dims =cutter.find_square_coords(dummy)          
         self.model=None
         self.pretrained=False
         
@@ -126,6 +128,7 @@ class Autoencoder():
     def build_wrapper(self):
         """
         Returns a func that works as a complete preprocsess tool
+        input shape is [1,x,x,3]
         """
         if mask==0:
             if self.model==None:
@@ -145,3 +148,48 @@ class Autoencoder():
 
         return ret
     
+
+    def sort_folder(self,w):
+        import os
+        import cv2
+        from tqdm import tqdm
+        from shutil import copyfile
+        import sys
+        
+        polyps_prep='polyps_prep'
+        polyps='polyps'
+        ulcerative_colitis_prep='ulcerative-colitis_prep'
+        ulcerative_colitis='ulcerative-colitis'
+        
+        if not os.path.exists(polyps_prep):
+            os.makedirs(polyps_prep)    
+        if not os.path.exists(ulcerative_colitis_prep):
+            os.makedirs(ulcerative_colitis_prep)    
+           
+        for a in [[polyps_prep,polyps],[ulcerative_colitis_prep,ulcerative_colitis]]:
+            for img_name in tqdm(os.listdir(a[1])):
+                path=os.path.join(a[1],img_name)
+                img=plotload.load_one_img((self.img_cols,self.img_rows), dest=path, 
+                                     extra_dim=True)
+                if cutter.is_green(img):
+                    tmp=cv2.imwrite(os.path.join(a[0],img_name), cv2.cvtColor(127.5*w(img)[0]+127.5,cv2.COLOR_RGB2BGR))
+                else:
+                    tmp=cv2.imwrite(os.path.join(a[0],img_name), cv2.cvtColor(127.5*img[0]+127.5,cv2.COLOR_RGB2BGR))
+                    #copyfile(path, os.path.join(a[0],img_name))        
+
+if __name__=='__main__':
+    A=Autoencoder(256,256)
+    A.build_model()
+    A.train_model()    
+    w=A.build_wrapper()
+    A.sort_folder(w)
+    """
+    import plotload
+    a=plotload.load_one_img((256,256),dest='green',extra_dim=True)
+    w(a)
+    import matplotlib.pyplot as plt
+    plt.imshow(a[0]*0.5+0.5)
+    plt.show()
+    plt.imshow(w(a)[0]*0.5+0.5)
+    plt.show()
+    """

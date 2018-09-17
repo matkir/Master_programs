@@ -13,14 +13,13 @@ import plotload
 import masker
 import cutter
 class Weight_model():
-    def __init__(self,img_rows,img_cols,corner=True):
+    def __init__(self,img_rows,img_cols,dims,corner=True):
         self.img_cols = img_cols 
         self.img_rows = img_rows 
         self.channels = 3
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
+        self.dims = dims
         if corner:
-            dummy=plotload.load_one_img(self.img_shape, dest='green',extra_dim=True)
-            self.dims =cutter.find_square_coords(dummy)
             self.mask_width = self.dims[3]-self.dims[2]
             self.mask_height = self.dims[1]-self.dims[0]
         else:        
@@ -35,25 +34,25 @@ class Weight_model():
         model = Sequential()
 
         # Encoder
-        model.add(Conv2D(16, kernel_size=3, strides=1, input_shape=self.img_shape, padding="same"))
+        model.add(Conv2D(16, kernel_size=3, strides=2, input_shape=self.img_shape, padding="same"))
         model.add(LeakyReLU(alpha=0.2))
         model.add(BatchNormalization(momentum=0.8))
         
-        model.add(Conv2D(16, kernel_size=3, strides=1, padding="same"))
+        model.add(Conv2D(16, kernel_size=3, strides=2, padding="same"))
         model.add(LeakyReLU(alpha=0.2))
         model.add(BatchNormalization(momentum=0.8))
         
-        model.add(Conv2D(32, kernel_size=3, strides=3, padding="same"))
+        model.add(Conv2D(32, kernel_size=3, strides=2, padding="same"))
         model.add(LeakyReLU(alpha=0.2))
         model.add(BatchNormalization(momentum=0.8))   
         
-        model.add(Conv2D(64, kernel_size=3, strides=3, padding="same"))
+        model.add(Conv2D(64, kernel_size=3, strides=2, padding="same"))
         model.add(LeakyReLU(alpha=0.2))
         model.add(BatchNormalization(momentum=0.8))
         
-        model.add(Conv2D(128, kernel_size=3, strides=2, padding="same"))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(BatchNormalization(momentum=0.8))
+        #model.add(Conv2D(128, kernel_size=3, strides=2, padding="same"))
+        #model.add(LeakyReLU(alpha=0.2))
+        #model.add(BatchNormalization(momentum=0.8))
         
        
         # Dropout
@@ -62,7 +61,7 @@ class Weight_model():
         # Decoder
         
       
-        model.add(BatchNormalization(momentum=0.8))
+        #model.add(BatchNormalization(momentum=0.8))
         model.add(UpSampling2D())
         model.add(Conv2D(128, kernel_size=3, padding="same"))
         model.add(Activation('relu'))
@@ -91,9 +90,6 @@ class Weight_model():
                 (int(np.ceil(target_width)),int(np.floor(target_width)))
             )))
         model.summary()
-        model.add(Conv2D(32, kernel_size=5, strides=1, padding="same",activation='relu'))
-        model.add(Conv2D(32, kernel_size=3, strides=1, padding="same",activation='relu'))
-        model.add(Conv2D(16, kernel_size=3, strides=1, padding="same",activation='relu'))
         model.add(Conv2D(8, kernel_size=3, strides=1, padding="same",activation='relu'))
         model.add(Conv2D(self.channels, kernel_size=3, strides=1, padding="same",activation='tanh'))
         model.summary()
@@ -144,35 +140,24 @@ class Weight_model():
 
     def build_CE(self):
         optimizer = Adam(0.0002, 0.5)
-        
-        #Build and compile the discriminator
         self.discriminator = self.build_discriminator()
         self.discriminator.compile(loss='binary_crossentropy',
             optimizer=optimizer,
             metrics=['accuracy'])
 
-        # Build and compile the generator
         self.generator = self.build_generator_img_size()
         #self.generator.compile(loss=['binary_crossentropy'],
         #    optimizer=optimizer)
 
-        # The generator takes noise as input and generates the missing
-        # part of the image
         masked_img = Input(shape=self.img_shape)
         gen_missing = self.generator(masked_img)
 
-        # For the combined model we will only train the generator
         self.discriminator.trainable = False
-
-        # The discriminator takes generated images as input and determines
-        # if it is generated or if it is a real image
         valid = self.discriminator(gen_missing)
 
-        # The combined model  (stacked generator and discriminator) takes
-        # masked_img as input => generates missing image => determines validity
         self.combined = Model(masked_img , [gen_missing, valid])
         self.combined.compile(loss=['mse', 'binary_crossentropy'],
-            loss_weights=[0.7, 0.3],
+            loss_weights=[0.50, 0.50],
             optimizer=optimizer)        
         return self.discriminator,self.generator,self.combined
 

@@ -77,13 +77,20 @@ def _find_dims(input_img,show=False):
 
 
 def memoize(f):
-    memo = {}
+    memo = {(256, 256, 3):(170, 245, 13, 88),
+            (512, 512, 3):(170*2, 245*2, 13*2, 88*2)}
+    memoize.has_run=False
     def helper(x):
         y=x.shape[-3:]
         if y not in memo:            
             memo[y] = f(x)
+        else:
+            if not memoize.has_run:
+                print(f"using predetermined green for {y}:{memo[y]}")
+                memoize.has_run=True
         return memo[y]
     return helper
+
 
         
 def find_square_coords(input_img):

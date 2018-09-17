@@ -30,6 +30,8 @@ class ContextEncoder():
         self.img_rows = img_rows # Original is ~720 
         self.channels = 3   # RGB 
         self.img_shape=(self.img_cols,self.img_rows,self.channels)
+        dummy=plotload.load_one_img(self.img_shape, dest='green',extra_dim=True)
+        self.dims =cutter.find_square_coords(dummy)                  
         self.combined=None
         self.discriminator=None
         self.generator=None
@@ -68,7 +70,7 @@ class ContextEncoder():
         """
         if self.combined!=None:
             print("Warning: overriding a loaded model")
-        wm=Weight_model(self.img_cols,self.img_rows)
+        wm=Weight_model(self.img_cols,self.img_rows,self.dims)
         self.discriminator,self.generator,self.combined=wm.build_CE()  
         
     def set_training_info(self):
@@ -131,7 +133,7 @@ class ContextEncoder():
             # ---------------------
 
                 
-            X_train=plotload.load_polyp_batch(self.img_shape, batch_size, data_type='none',crop=True)
+            X_train = plotload.load_polyp_batch(self.img_shape, batch_size, data_type='none',crop=True)
             idx = np.random.randint(0, X_train.shape[0], half_batch)
             imgs = X_train[idx]
 
@@ -235,29 +237,48 @@ class ContextEncoder():
                 img=input_img.copy()
                 if len(img.shape)==3:
                     img=np.expand_dims(img, 0) 
-                y1,y2,x1,x2=ContextEncoder.dims
+                y1,y2,x1,x2=self.dims
                 prediced=np.squeeze(self.generator.predict(img),0)
                 img=np.squeeze(img,0)
-                img[y1:y2,x1:x2]=prediced[y1:y2,x1:x2]
+                img[y1:y2,x1:x2]=prediced#[y1:y2,x1:x2]
                 return np.expand_dims(img,0)
         else:
             print("Not yet implimented")
 
         return ret        
+    def sort_folder(self,w):
+        import os
+        import cv2
+        from tqdm import tqdm
+        from shutil import copyfile
+        import sys
+        
+        polyps_prep='polyps_prep'
+        polyps='polyps'
+        ulcerative_colitis_prep='ulcerative-colitis_prep'
+        ulcerative_colitis='ulcerative-colitis'
+        
+        if not os.path.exists(polyps_prep):
+            os.makedirs(polyps_prep)    
+        if not os.path.exists(ulcerative_colitis_prep):
+            os.makedirs(ulcerative_colitis_prep)    
+           
+        for a in [[polyps_prep,polyps],[ulcerative_colitis_prep,ulcerative_colitis]]:
+            for img_name in tqdm(os.listdir(a[1])):
+                path=os.path.join(a[1],img_name)
+                img=plotload.load_one_img((self.img_cols,self.img_rows), dest=path, 
+                                     extra_dim=True)
+                if cutter.is_green(img):
+                    tmp=cv2.imwrite(os.path.join(a[0],img_name), cv2.cvtColor(127.5*w(img)[0]+127.5,cv2.COLOR_RGB2BGR))
+                else:
+                    tmp=cv2.imwrite(os.path.join(a[0],img_name), cv2.cvtColor(127.5*img[0]+127.5,cv2.COLOR_RGB2BGR))
+                    #copyfile(path, os.path.join(a[0],img_name))        
+
 if __name__ == '__main__':
     a=ContextEncoder(256,256)
+    a.build_model()
     #a.load_model()
     #a.load_model_weights()
-    a.build_model()
-    a.train_model()
-    prepro=a.build_wrapper()
-    input_img=plotload.load_one_img((256,256),dest='none',printable=True)
-    output_img=prepro(input_img)
-    plt.imshow(output_img)
-    plt.show()
-    #context_encoder.train(epochs=2000, batch_size=320, sample_interval=100)
-    #imgs=plotload.load_polyp_batch((576//6,720//6,3), 4, data_type='green', crop=False)    
-    #context_encoder.sample_images(2, imgs)
-    #context_encoder.train(epochs=10000, batch_size=1024, sample_interval=100)
-
-
+    a.train_model()    
+    w=a.build_wrapper()
+    a.sort_folder(w)
