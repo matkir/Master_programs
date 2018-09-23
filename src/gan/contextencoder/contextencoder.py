@@ -10,9 +10,6 @@ else:
     from . import Weight_model
 
 import masker as ms
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 import plotload
 import sys
 import cutter
@@ -116,6 +113,9 @@ class ContextEncoder():
 
 
     def train_model(self):
+        def t(m,bol):
+            for layer in m.layers:
+                layer.trainable=bol        
         if self.info==None:
             print("Warning no info found, prompting for info")
             self.set_training_info()
@@ -132,60 +132,63 @@ class ContextEncoder():
             #  Train Discriminator
             # ---------------------
 
-                
-            X_train = plotload.load_polyp_batch(self.img_shape, batch_size, data_type='none',crop=True)
-            idx = np.random.randint(0, X_train.shape[0], half_batch)
-            imgs = X_train[idx]
-
-            if corner:    
-                masked_imgs, missing, _ = ms.mask_green_corner(imgs)
-            else:
-                masked_imgs, missing, _ = ms.mask_randomly_square(imgs, 
-                    self.mask_height, 
-                    self.mask_width)
-
-            # Generate a half batch of new images
-            gen_missing = self.generator.predict(masked_imgs)
-
-            if soft:
-                valid = 0.2*np.random.random_sample((half_batch,1))+0.9
-                fake = 0.1*np.random.random_sample((half_batch,1))
-            else:
-                valid = np.ones((half_batch, 1))
-                fake = np.zeros((half_batch, 1))
-
-            if epoch%120==0:
-                #small shakeup to get out of local minimas
-                placeholder=valid
-                valid=fake
-                fake=placeholder
-
-            # Train the discriminator
-            d_loss_real = self.discriminator.train_on_batch(missing, valid)
-            d_loss_fake = self.discriminator.train_on_batch(gen_missing, fake)
-            d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
+            for _ in range(1):
+                X_train = plotload.load_polyp_batch(self.img_shape, batch_size, data_type='none',crop=False)
+                idx = np.random.randint(0, X_train.shape[0], half_batch)
+                imgs = X_train[idx]
+    
+                if corner:    
+                    masked_imgs, missing, _ = ms.mask_green_corner(imgs)
+                else:
+                    masked_imgs, missing, _ = ms.mask_randomly_square(imgs, 
+                        self.mask_height, 
+                        self.mask_width)
+    
+                # Generate a half batch of new images
+                gen_missing = self.generator.predict(masked_imgs)
+    
+                if soft:
+                    valid = 0.2*np.random.random_sample((half_batch,1))+0.9
+                    fake = 0.1*np.random.random_sample((half_batch,1))
+                else:
+                    valid = np.ones((half_batch, 1))
+                    fake = np.zeros((half_batch, 1))
+    
+                if epoch%120==0:
+                    #small shakeup to get out of local minimas
+                    placeholder=valid
+                    valid=fake
+                    fake=placeholder
+    
+                # Train the discriminator
+                d_loss_real = self.discriminator.train_on_batch(missing, valid)
+                d_loss_fake = self.discriminator.train_on_batch(gen_missing, fake)
+                d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
 
             # ---------------------
             #  Train Generator
             # ---------------------
-            
-            # Select a random half batch of images
-            idx = np.random.randint(0, X_train.shape[0], batch_size)
-            imgs = X_train[idx]
-    
-            if corner:
-                masked_imgs, missing_parts, _ = ms.mask_green_corner(imgs)
-            else:
-                masked_imgs, missing_parts, _ = ms.mask_randomly_square(imgs,self.mask_height,self.mask_width)
-                
-            # Generator wants the discriminator to label the generated images as valid
-            valid = np.ones((batch_size, 1))
-    
-            # Train the generator
-            g_loss = self.combined.train_on_batch(masked_imgs, [missing_parts, valid])
+            for _ in range(1):
+                # Select a random half batch of images
+                idx = np.random.randint(0, X_train.shape[0], batch_size)
+                imgs = X_train[idx]
+        
+                if corner:
+                    masked_imgs, missing_parts, _ = ms.mask_green_corner(imgs)
+                else:
+                    masked_imgs, missing_parts, _ = ms.mask_randomly_square(imgs,self.mask_height,self.mask_width)
+                    
+                # Generator wants the discriminator to label the generated images as valid
+                valid = np.ones((batch_size, 1))
+        
+                # Train the generator
+                t(self.discriminator,False)
+                g_loss = self.combined.train_on_batch(masked_imgs, [missing_parts, valid])
+                t(self.discriminator,True)
 
             # Plot the progress
-            print ("%d [D loss: %f, acc: %.2f%%] [G loss: %f, mse: %f]" % (epoch, d_loss[0], 100*d_loss[1], g_loss[0], g_loss[1]))
+            if epoch%15==0:
+                print ("%d [D loss: %f, acc: %.2f%%] [G loss: %f, mse: %f]" % (epoch, d_loss[0], 100*d_loss[1], g_loss[0], g_loss[1]))
 
             if g_loss[1]<self.threshold:
                 self.threshold=g_loss[1]
@@ -272,13 +275,12 @@ class ContextEncoder():
                     tmp=cv2.imwrite(os.path.join(a[0],img_name), cv2.cvtColor(127.5*w(img)[0]+127.5,cv2.COLOR_RGB2BGR))
                 else:
                     tmp=cv2.imwrite(os.path.join(a[0],img_name), cv2.cvtColor(127.5*img[0]+127.5,cv2.COLOR_RGB2BGR))
-                    #copyfile(path, os.path.join(a[0],img_name))        
 
 if __name__ == '__main__':
     a=ContextEncoder(256,256)
     a.build_model()
+    a.train_model()    
     #a.load_model()
     #a.load_model_weights()
-    a.train_model()    
     w=a.build_wrapper()
     a.sort_folder(w)

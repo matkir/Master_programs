@@ -45,7 +45,6 @@ def mask_green_corner(imgs,val=0):
     y1,y2,x1,x2=cutter.find_square_coords(imgs)
     
     
-    
     masked_imgs = np.empty_like(imgs)
     missing_parts = np.empty((img_num ,y2-y1 ,x2-x1 ,img_channels))
     for i, img in enumerate(imgs):

@@ -8,7 +8,7 @@ from keras.layers import MaxPooling2D, AveragePooling2D, Concatenate, GaussianNo
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers.convolutional import UpSampling2D, Conv2D
 from keras.models import Sequential, Model
-from keras.optimizers import Adam
+from keras.optimizers import Adam, SGD
 from keras import losses
 from keras.utils import to_categorical
 import keras.backend as K
@@ -96,15 +96,16 @@ class Weight_model():
         return Model(img,validity)
 
     def build_model(self):
-        optimizer = Adam()
+        optimizer_generator = Adam()
+        optimizer_discriminator = SGD()
         self.discriminator = self.build_discriminator()
         self.generator = self.build_generator()
     
         self.discriminator.compile(loss='binary_crossentropy',
-                                optimizer=optimizer,
+                                optimizer=optimizer_discriminator,
                                 metrics=['accuracy'])
         self.generator.compile(loss='binary_crossentropy',
-                               optimizer=optimizer)
+                               optimizer=optimizer_generator)
     
         masked_img = Input(shape=self.img_shape)
         gen_img = self.generator(masked_img)
@@ -114,7 +115,7 @@ class Weight_model():
         self.combined = Model(masked_img , [gen_img, valid])
         self.combined.compile(loss=['mse', 'binary_crossentropy'],
                                   loss_weights=[0.1, 0.9],
-                                  optimizer=optimizer)        
+                                  optimizer=optimizer_generator)        
         return self.discriminator,self.generator,self.combined
 
 if __name__=='__main__':

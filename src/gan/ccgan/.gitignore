@@ -1,3 +1,5 @@
+*.jpg
+*.png
 *.npy
 logs/
 Graph/

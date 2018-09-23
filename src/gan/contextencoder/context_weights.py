@@ -4,7 +4,7 @@ from keras.layers import MaxPooling2D, Permute
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers.convolutional import UpSampling2D, Conv2D, Cropping2D
 from keras.models import Sequential, Model
-from keras.optimizers import Adam
+from keras.optimizers import Adam, SGD
 from keras import losses
 from keras.utils import to_categorical
 import keras.backend as K
@@ -50,9 +50,9 @@ class Weight_model():
         model.add(LeakyReLU(alpha=0.2))
         model.add(BatchNormalization(momentum=0.8))
         
-        #model.add(Conv2D(128, kernel_size=3, strides=2, padding="same"))
-        #model.add(LeakyReLU(alpha=0.2))
-        #model.add(BatchNormalization(momentum=0.8))
+        model.add(Conv2D(128, kernel_size=3, strides=2, padding="same"))
+        model.add(LeakyReLU(alpha=0.2))
+        model.add(BatchNormalization(momentum=0.8))
         
        
         # Dropout
@@ -61,10 +61,15 @@ class Weight_model():
         # Decoder
         
       
-        #model.add(BatchNormalization(momentum=0.8))
+        model.add(BatchNormalization(momentum=0.8))
         model.add(UpSampling2D())
         model.add(Conv2D(128, kernel_size=3, padding="same"))
         model.add(Activation('relu'))
+        
+        model.add(BatchNormalization(momentum=0.8))
+        model.add(UpSampling2D())
+        model.add(Conv2D(64, kernel_size=3, padding="same"))
+        model.add(Activation('relu'))        
         
         model.add(BatchNormalization(momentum=0.8))
         model.add(UpSampling2D())
@@ -78,6 +83,10 @@ class Weight_model():
         if self.corner:
             scale_y=int(np.ceil(self.mask_height/(model.outputs[0].get_shape()[1:3].as_list()[0])))
             scale_x=int(np.ceil(self.mask_width/(model.outputs[0].get_shape()[1:3].as_list()[1])))
+            print(scale_x,scale_y)
+            print(scale_x,scale_y)
+            print(scale_x,scale_y)
+            print(scale_x,scale_y)
             model.add(UpSampling2D((scale_y,scale_x)))
             height=model.outputs[0].get_shape()[1:3].as_list()[0]
             width=model.outputs[0].get_shape()[1:3].as_list()[1]
@@ -89,10 +98,10 @@ class Weight_model():
                 (int(np.ceil(target_height)),int(np.floor(target_height))),
                 (int(np.ceil(target_width)),int(np.floor(target_width)))
             )))
-        model.summary()
-        model.add(Conv2D(8, kernel_size=3, strides=1, padding="same",activation='relu'))
+        #model.summary()
+        #model.add(Conv2D(8, kernel_size=3, strides=1, padding="same",activation='relu'))
         model.add(Conv2D(self.channels, kernel_size=3, strides=1, padding="same",activation='tanh'))
-        model.summary()
+        #model.summary()
 
         masked_img = Input(shape=self.img_shape)
         gen_missing = model(masked_img)
@@ -139,10 +148,11 @@ class Weight_model():
 
 
     def build_CE(self):
-        optimizer = Adam(0.0002, 0.5)
+        optimizer_generator = Adam()
+        optimizer_discriminator = SGD()
         self.discriminator = self.build_discriminator()
         self.discriminator.compile(loss='binary_crossentropy',
-            optimizer=optimizer,
+            optimizer=optimizer_discriminator,
             metrics=['accuracy'])
 
         self.generator = self.build_generator_img_size()
@@ -152,13 +162,12 @@ class Weight_model():
         masked_img = Input(shape=self.img_shape)
         gen_missing = self.generator(masked_img)
 
-        self.discriminator.trainable = False
         valid = self.discriminator(gen_missing)
 
         self.combined = Model(masked_img , [gen_missing, valid])
         self.combined.compile(loss=['mse', 'binary_crossentropy'],
-            loss_weights=[0.50, 0.50],
-            optimizer=optimizer)        
+            loss_weights=[0.5, 0.5],
+            optimizer=optimizer_generator)        
         return self.discriminator,self.generator,self.combined
 
 if __name__=='__main__':

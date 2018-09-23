@@ -99,6 +99,9 @@ class CCgan():
             np.save("temp_info.npy", self.info)    
 
     def train_model(self):
+        def t(m,bol):
+            for layer in m.layers:
+                layer.trainable=bol
         if self.info==None:
             print("Warning no info found, prompting for info")
             self.set_training_info()
@@ -110,17 +113,17 @@ class CCgan():
             print("Warning: model has pretrained weights")
         half_batch = batch_size
         for epoch in tqdm(range(epochs)):
-            X_train=plotload.load_polyp_batch(self.img_shape, batch_size)
-            imgs = X_train
+            X_train = plotload.load_polyp_batch(self.img_shape, batch_size, data_type='none',crop=False)
+            
 
             if corner:
-                masked_imgs, missing, mask = ms.mask_green_corner(imgs)
-                m=np.zeros(shape=imgs.shape)
-                for i in range(imgs.shape[0]):
+                masked_imgs, missing, mask = ms.mask_green_corner(X_train)
+                m=np.zeros(shape=X_train.shape)
+                for i in range(X_train.shape[0]):
                     m[i,mask[0]:mask[1],mask[2]:mask[3]]=missing[i]
                 missing=m
             else:
-                masked_imgs, missing, mask = ms.mask_from_template(imgs)            
+                masked_imgs, missing, mask = ms.mask_from_template(X_train)            
             
             if soft:
                 valid = 0.2*np.random.random_sample((half_batch,1))+0.9
@@ -132,21 +135,23 @@ class CCgan():
             # ---------------------
             #  Train Generator
             # ---------------------
-            self.discriminator.trainable = False
 
+                
+
+            
             valid = np.ones((batch_size, 1))
         
             # Train the generator
-            g_loss = self.combined.train_on_batch(masked_imgs, [imgs, valid])
-            
-            self.discriminator.trainable = True
+            t(self.discriminator,False)
+            g_loss = self.combined.train_on_batch(masked_imgs, [X_train, valid])
+            t(self.discriminator,True)
             # ---------------------
             #  Train discriminator
             # ---------------------
            
 
             gen_fake = self.generator.predict(masked_imgs)
-            gen_fake = ms.combine_imgs_with_mask(gen_fake, imgs, mask)
+            gen_fake = ms.combine_imgs_with_mask(gen_fake, X_train, mask)
             
             if epoch%120==0 and epoch!=0:
                 #small shakeup to get out of local minimas
@@ -155,7 +160,7 @@ class CCgan():
                 fake=placeholder
 
             # Train the discriminator
-            d_loss_real = self.discriminator.train_on_batch(imgs, valid)
+            d_loss_real = self.discriminator.train_on_batch(X_train, valid)
             d_loss_fake = self.discriminator.train_on_batch(gen_fake, fake)
             d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
 
@@ -167,8 +172,8 @@ class CCgan():
 
 
             # Plot the progress
-            print ("%d [D loss: %f, acc: %.2f%%] [G loss: %f, mse: %f]" % (epoch, d_loss[0], 100*d_loss[1], g_loss[0], g_loss[1]))
-            if g_loss[1]<self.threshold:
+            print ("[D: %f, acc: [%.2f%% r,%.2f%% f]] [G: %f, mse: %f]" % (d_loss[0], 100*d_loss_real[1],100*d_loss_fake[0],g_loss[0], g_loss[1]))
+            if g_loss[1]<self.threshold or epoch==(epochs-1):
                 self.threshold=g_loss[1]
                 self.generator.save(f"models/CCgan-gen-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}.h5")   
                 self.discriminator.save(f"models/CCgan-dic-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}.h5")   
@@ -192,7 +197,7 @@ class CCgan():
                     img=np.expand_dims(img, 0) 
                 prediced=np.squeeze(self.generator.predict(img),0)
                 img=masker.combine_imgs_with_mask(prediced, img, mask)
-                return img
+                return np.expand_dims(img,0)
         else:
             def ret(input_img):
                 if not cutter.is_green(input_img):
@@ -205,8 +210,7 @@ class CCgan():
                 prediced=np.squeeze(self.generator.predict(img),0)
                 img=np.squeeze(img,0)
                 img[y1:y2,x1:x2]=prediced[y1:y2,x1:x2]
-                return img
-
+                return np.expand_dims(img,0)
         return ret                            
             
 
@@ -231,7 +235,33 @@ class CCgan():
             axs[2,i].axis('off')
         fig.savefig("images/cc_%d.png" % epoch)
         plt.close()
-
+    def sort_folder(self,w):
+        import os
+        import cv2
+        from tqdm import tqdm
+        from shutil import copyfile
+        import sys
+        
+        polyps_prep='polyps_prep'
+        polyps='polyps'
+        ulcerative_colitis_prep='ulcerative-colitis_prep'
+        ulcerative_colitis='ulcerative-colitis'
+        
+        if not os.path.exists(polyps_prep):
+            os.makedirs(polyps_prep)    
+        if not os.path.exists(ulcerative_colitis_prep):
+            os.makedirs(ulcerative_colitis_prep)    
+           
+        for a in [[polyps_prep,polyps],[ulcerative_colitis_prep,ulcerative_colitis]]:
+            for img_name in tqdm(os.listdir(a[1])):
+                path=os.path.join(a[1],img_name)
+                img=plotload.load_one_img((self.img_cols,self.img_rows), dest=path, 
+                                     extra_dim=True)
+                if cutter.is_green(img):
+                    tmp=cv2.imwrite(os.path.join(a[0],img_name), cv2.cvtColor(127.5*w(img)[0]+127.5,cv2.COLOR_RGB2BGR))
+                else:
+                    tmp=cv2.imwrite(os.path.join(a[0],img_name), cv2.cvtColor(127.5*img[0]+127.5,cv2.COLOR_RGB2BGR))
+                    #copyfile(path, os.path.join(a[0],img_name))     
                 
 
 
@@ -240,7 +270,10 @@ if __name__ == '__main__':
     cc = CCgan(256,256)
     cc.build_model()
     cc.train_model()
-    cc.build_wrapper()
+    #cc.load_model()
+    #cc.load_model_weights()
+    w=cc.build_wrapper()
+    cc.sort_folder(w)
     
 
 
