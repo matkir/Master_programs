@@ -114,7 +114,7 @@ class Weight_model():
     
         self.combined = Model(masked_img , [gen_img, valid])
         self.combined.compile(loss=['mse', 'binary_crossentropy'],
-                                  loss_weights=[0.1, 0.9],
+                                  loss_weights=[0.05, 0.95],
                                   optimizer=optimizer_generator)        
         return self.discriminator,self.generator,self.combined
 
