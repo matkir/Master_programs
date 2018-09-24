@@ -28,7 +28,7 @@ class CCgan():
         self.channels = 3   # RGB 
         self.img_shape=(self.img_cols,self.img_rows,self.channels)
         if not mask:
-            dummy=plotload.load_one_img(self.img_shape, dest='green',extra_dim=True)
+            dummy=plotload.load_polyp_batch(self.img_shape,20,data_type='med/green',crop=False)
             self.dims =cutter.find_square_coords(dummy)   
         self.combined=None
         self.discriminator=None
@@ -113,7 +113,7 @@ class CCgan():
             print("Warning: model has pretrained weights")
         half_batch = batch_size
         for epoch in tqdm(range(epochs)):
-            X_train = plotload.load_polyp_batch(self.img_shape, batch_size, data_type='none',crop=False)
+            X_train = plotload.load_polyp_batch(self.img_shape, batch_size, data_type='med/none',crop=False)
             
 
             if corner:
@@ -172,13 +172,19 @@ class CCgan():
 
 
             # Plot the progress
-            print ("[D: %f, acc: [%.2f%% r,%.2f%% f]] [G: %f, mse: %f]" % (d_loss[0], 100*d_loss_real[1],100*d_loss_fake[0],g_loss[0], g_loss[1]))
-            if g_loss[1]<self.threshold or epoch==(epochs-1):
+            print ("[D: %f  G: %f, mse: %f]" % (d_loss[0], g_loss[0], g_loss[1]))
+            if g_loss[1]<self.threshold:
                 self.threshold=g_loss[1]
                 self.generator.save(f"models/CCgan-gen-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}.h5")   
                 self.discriminator.save(f"models/CCgan-dic-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}.h5")   
                 self.combined.save(f"models/CCgan-com-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}.h5")   
                 self.combined.save_weights(f"models/CCgan-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}-w.h5") 
+        if g_loss[1]<self.threshold:
+            self.threshold=g_loss[1]
+            self.generator.save(f"models/CCgan-gen-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}_fin.h5")   
+            self.discriminator.save(f"models/CCgan-dic-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}_fin.h5")   
+            self.combined.save(f"models/CCgan-com-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}_fin.h5")   
+            self.combined.save_weights(f"models/CCgan-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}-w_fin.h5")         
     def build_wrapper(self):
         """
         Returns a func that works as a complete preprocsess tool
@@ -191,7 +197,7 @@ class CCgan():
                 if not cutter.is_green(input_img):
                     return input_img
                 if mask is None:
-                    mask=plotload.load_single_template(input_img.shape)
+                    mask=plotload.load_single_template(input_img.shape,dest='med/green')
                 img=input_img.copy()
                 if len(img.shape)==3:
                     img=np.expand_dims(img, 0) 
@@ -235,45 +241,57 @@ class CCgan():
             axs[2,i].axis('off')
         fig.savefig("images/cc_%d.png" % epoch)
         plt.close()
-    def sort_folder(self,w):
+    def sort_folder(self,w,path=None):
         import os
         import cv2
         from tqdm import tqdm
         from shutil import copyfile
         import sys
         
-        polyps_prep='polyps_prep'
-        polyps='polyps'
-        ulcerative_colitis_prep='ulcerative-colitis_prep'
-        ulcerative_colitis='ulcerative-colitis'
+        if path is not None:
+            dirs_i=[]
+            dirs_o=[]
+            d=next(os.walk(path))[1]
+            for i in d:
+                if i =='none' or i=='green' or i=='preprocessed':
+                    continue
+                dirs_o.append(path+'preprocessed/'+i)
+                dirs_i.append(path+i)
+            for i in dirs_o:
+                if not os.path.exists(i):
+                    os.makedirs(i)                    
+        else:
+            polyps='polyps'
+            ulcerative_colitis='ulcerative-colitis'
+            dirs=[polyps,ulcerative_colitis]
         
-        if not os.path.exists(polyps_prep):
-            os.makedirs(polyps_prep)    
-        if not os.path.exists(ulcerative_colitis_prep):
-            os.makedirs(ulcerative_colitis_prep)    
-           
-        for a in [[polyps_prep,polyps],[ulcerative_colitis_prep,ulcerative_colitis]]:
-            for img_name in tqdm(os.listdir(a[1])):
-                path=os.path.join(a[1],img_name)
+            if not os.path.exists(polyps_prep):
+                os.makedirs(polyps_prep)    
+            if not os.path.exists(ulcerative_colitis_prep):
+                os.makedirs(ulcerative_colitis_prep)    
+        
+        for i,o in tqdm(zip(dirs_i,dirs_o)):
+            for img_name in os.listdir(i):
+                path=os.path.join(i,img_name)
                 img=plotload.load_one_img((self.img_cols,self.img_rows), dest=path, 
                                      extra_dim=True)
                 if cutter.is_green(img):
-                    tmp=cv2.imwrite(os.path.join(a[0],img_name), cv2.cvtColor(127.5*w(img)[0]+127.5,cv2.COLOR_RGB2BGR))
+                    tmp=cv2.imwrite(os.path.join(o,img_name), cv2.cvtColor(127.5*w(img)[0]+127.5,cv2.COLOR_RGB2BGR))
                 else:
-                    tmp=cv2.imwrite(os.path.join(a[0],img_name), cv2.cvtColor(127.5*img[0]+127.5,cv2.COLOR_RGB2BGR))
-                    #copyfile(path, os.path.join(a[0],img_name))     
+                    tmp=cv2.imwrite(os.path.join(o,img_name), cv2.cvtColor(127.5*img[0]+127.5,cv2.COLOR_RGB2BGR))
                 
 
 
 
 if __name__ == '__main__':
-    cc = CCgan(256,256)
+    cc = CCgan(320,320)
     cc.build_model()
-    cc.train_model()
-    #cc.load_model()
-    #cc.load_model_weights()
+    #cc.train_model()
+    cc.load_model()
+    cc.load_model_weights()
     w=cc.build_wrapper()
-    cc.sort_folder(w)
+    root='/home/mathias/Documents/kvasir-dataset-v2/med/'
+    cc.sort_folder(w,path=root)
     
 
 

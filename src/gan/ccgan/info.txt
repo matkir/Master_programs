@@ -1,6 +1,6 @@
 mask 0
-epochs 5000
-batch_size 128
+epochs 1500
+batch_size 110
 save_interval 100
 threshold 0.5
 corner 1

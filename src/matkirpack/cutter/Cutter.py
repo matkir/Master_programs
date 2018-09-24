@@ -78,7 +78,8 @@ def _find_dims(input_img,show=False):
 
 def memoize(f):
     memo = {(256, 256, 3):(170, 245, 13, 88),
-            (512, 512, 3):(170*2, 245*2, 13*2, 88*2)}
+            (512, 512, 3):(170*2, 245*2, 13*2, 88*2),
+            (300, 300, 3):(204, 300,  0, 100)}
     memoize.has_run=False
     def helper(x):
         y=x.shape[-3:]
@@ -91,48 +92,57 @@ def memoize(f):
         return memo[y]
     return helper
 
-
+ 
         
-def find_square_coords(input_img):
-        if len(input_img.shape)==3:
-            input_img=np.expand_dims(input_img, 0)
-        img_num,img_cols,img_rows,img_channels=input_img.shape
+def find_square_coords(input_imgs):
+        """
+        takes either one of multiple images and finds bottom right corner
+        """
+        img_num,img_cols,img_rows,img_channels=input_imgs.shape
         
         borderx=0.8*img_rows
         bordery=0.1*img_cols
-    
-        img=(input_img*127.5+127.5).astype(np.uint8)
-        img=cv2.Canny(img[0], 0, 300)
-        minLineLength=img_cols*0.18
-        lines = cv2.HoughLinesP(image=img,rho=1,theta=np.pi/180, threshold=70,lines=np.array([]), minLineLength=minLineLength,maxLineGap=3)
-        l2=[]
-        img2=np.squeeze(input_img[0].copy()*0.5+0.5)
-        plt.subplot(121)
-        plt.imshow(img)
-        if lines is None:
-            return False,False,False,False        
-        for l in lines:
-            if l[0][0]<bordery and l[0][2]>bordery and l[0][0]<img_rows*0.6 and l[0][2]<img_rows*0.4:
-                cv2.line(img2,(l[0][0],l[0][1]),(l[0][2],l[0][3]),(255,0,255),1)
-                l2.append(((l[0][2],l[0][3])))
-                l2.append(((l[0][0],l[0][1])))
-            if l[0][1]>borderx and l[0][3]<borderx and l[0][1]>img_cols*0.4 and l[0][3]>img_cols*0.4:
-                cv2.line(img2,(l[0][0],l[0][1]),(l[0][2],l[0][3]),(255,0,255),1)
-                l2.append(((l[0][0],l[0][1])))
-                l2.append(((l[0][2],l[0][3])))
-        if len(l2)<2:
-            return False,False,False,False        
-        bottom_left=(min(l2, key = lambda t: t[0])[0],(max(l2, key = lambda t: t[1]))[1])
-        top_right=(max(l2, key = lambda t: t[0])[0],(min(l2, key = lambda t: t[1]))[1])
+        bottom_left=[]
+        top_right=[]
+        img2=np.squeeze(input_imgs[0].copy()*0.5+0.5)
+        for input_img in input_imgs:
+            #img2=np.squeeze(input_img.copy()*0.5+0.5)
+            img=(input_img*127.5+127.5).astype(np.uint8)
+            img=cv2.Canny(img, 0, 300)
+            minLineLength=img_cols*0.18
+            lines = cv2.HoughLinesP(image=img,rho=1,theta=np.pi/180, threshold=70,lines=np.array([]), minLineLength=minLineLength,maxLineGap=3)
+            l2=[]
+            #plt.imshow(img)
+            #plt.show()
+            if lines is None:
+                continue
+            lines=np.squeeze(lines,axis=1)
+            for l in lines:
+                """Really sorry for this ugly code! it finds the lines that are inside the area"""
+                if l[0]<bordery and l[2]>bordery and l[0]<img_rows*0.6 and l[2]<img_rows*0.4 and abs(l[1]-l[3])<5:
+                    img2=np.squeeze(input_img.copy()*0.5+0.5)
+                    cv2.line(img2,(l[0],l[1]),(l[2],l[3]),0.5,4)
+                    plt.imshow(img2)
+                    l2.append(((l[2],l[3])))
+                    l2.append(((l[0],l[1])))
+                if l[1]>borderx and l[3]<borderx and l[1]>img_cols*0.4 and l[3]>img_cols*0.4:
+                    cv2.line(img2,(l[0],l[1]),(l[2],l[3]),1,4)
+                    l2.append(((l[0],l[1])))
+                    l2.append(((l[2],l[3])))
+            if len(l2)<2:
+                continue
+            bottom_left.append((min(l2, key = lambda t: t[0])[0],(max(l2, key = lambda t: t[1]))[1]))
+            top_right.append((max(l2, key = lambda t: t[0])[0]-1,(min(l2, key = lambda t: t[1]))[1])-1)
+
+        if not bottom_left or not top_right:
+            return False,False,False,False
+        top_right=max(set(top_right), key=top_right.count)
+        bottom_left=max(set(bottom_left), key=bottom_left.count)
         
+        img2=np.squeeze(input_imgs[0].copy()*0.5+0.5)
         cv2.line(img2,bottom_left,top_right,(0,255,0),1) 
-        plt.subplot(122)
-        plt.imshow(img2)
-        plt.show()
-        
-        if top_right==bottom_left:
-            import plotload
-            find_square_coords(plotload.load_one_img(img.shape,dest='green'))
+
+        print('img coords: ',top_right,bottom_left)
         return top_right[1], bottom_left[1], bottom_left[0], top_right[0]
 
 find_square_coords=memoize(find_square_coords)
