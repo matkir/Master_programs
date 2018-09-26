@@ -12,6 +12,7 @@ from keras.optimizers import Adam, SGD
 from keras import losses
 from keras.utils import to_categorical
 import keras.backend as K
+from keras.layers.core import Lambda
 
 class Weight_model():
     def __init__(self,img_rows,img_cols):
@@ -34,12 +35,16 @@ class Weight_model():
                 d = BatchNormalization(momentum=0.8)(d)
             return d
 
-        def deconv2d(layer_input, filters, f_size=4, dropout_rate=0):
+        def deconv2d(layer_input, filters, f_size=4, dropout_rate=0,permanent=False):
             """Layers used during upsampling"""
             u = UpSampling2D(size=2)(layer_input)
             u = Conv2D(filters, kernel_size=f_size, strides=1, padding='same', activation='relu')(u)
-            if dropout_rate:
+            if dropout_rate and not permanent:
                 u = Dropout(dropout_rate)(u)
+            elif dropout_rate and permanent:
+                # permanent droput from my main man fchollet <3
+                u=Lambda(lambda x: K.dropout(x, level=dropout_rate))(u)               
+                
             u = BatchNormalization(momentum=0.8)(u)
             return u
         
@@ -56,9 +61,9 @@ class Weight_model():
         d5 = conv2d(d4, self.gf*16)
     
         # Upsampling
-        u1 = deconv2d(d4, self.gf*4,dropout_rate=0.25)
-        u2 = deconv2d(u1, self.gf*2,dropout_rate=0.25)
-        u3 = deconv2d(u2, self.gf*2)
+        u1 = deconv2d(d4, self.gf*4,dropout_rate=0.10,permanent=False)
+        u2 = deconv2d(u1, self.gf*2,dropout_rate=0.10,permanent=False)
+        u3 = deconv2d(u2, self.gf*2,dropout_rate=0.10,permanent=False)
         u4 = deconv2d(u3, self.gf)
     
         u4 = UpSampling2D(size=2)(u3)
@@ -85,8 +90,6 @@ class Weight_model():
         model.add(LeakyReLU(alpha=0.2))
         model.add(InstanceNormalization())
     
-        model.summary()
-    
         img = Input(shape=self.img_shape)
         features = model(img)
     
@@ -96,8 +99,8 @@ class Weight_model():
         return Model(img,validity)
 
     def build_model(self):
-        optimizer_generator = Adam()
-        optimizer_discriminator = SGD()
+        optimizer_generator = Adam(lr=0.0005)
+        optimizer_discriminator = SGD(lr=0.001)
         self.discriminator = self.build_discriminator()
         self.generator = self.build_generator()
     
@@ -114,7 +117,7 @@ class Weight_model():
     
         self.combined = Model(masked_img , [gen_img, valid])
         self.combined.compile(loss=['mse', 'binary_crossentropy'],
-                                  loss_weights=[0.10, 0.90],
+                                  loss_weights=[0.15, 0.85],
                                   optimizer=optimizer_generator)        
         return self.discriminator,self.generator,self.combined
 

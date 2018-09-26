@@ -28,7 +28,7 @@ class CCgan():
         self.channels = 3   # RGB 
         self.img_shape=(self.img_cols,self.img_rows,self.channels)
         if not mask:
-            dummy=plotload.load_polyp_batch(self.img_shape,20,data_type='med/green',crop=False)
+            dummy=plotload.load_polyp_batch(self.img_shape,20,data_type='med/stool-inclusions',crop=False)
             self.dims =cutter.find_square_coords(dummy)   
         self.combined=None
         self.discriminator=None
@@ -49,7 +49,9 @@ class CCgan():
             print("Error: no model in object")
         else:
             try:
-                self.combined.load_weights(f"models/CCgan-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}-w.h5")
+                self.combined.load_weights(f"models/CCgan-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}-w-com.h5")
+                self.discriminator.load_weights(f"models/CCgan-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}-w-dis.h5")
+                self.generator.load_weights(f"models/CCgan-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}-w-gen.h5")
                 self.pretrained=True
             except e:
                 print("Error: weights could not be loaded")
@@ -155,9 +157,7 @@ class CCgan():
             
             if epoch%120==0 and epoch!=0:
                 #small shakeup to get out of local minimas
-                placeholder=valid
-                valid=fake
-                fake=placeholder
+                fake, valid = valid , fake
 
             # Train the discriminator
             d_loss_real = self.discriminator.train_on_batch(X_train, valid)
@@ -178,13 +178,17 @@ class CCgan():
                 self.generator.save(f"models/CCgan-gen-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}.h5")   
                 self.discriminator.save(f"models/CCgan-dic-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}.h5")   
                 self.combined.save(f"models/CCgan-com-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}.h5")   
-                self.combined.save_weights(f"models/CCgan-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}-w.h5") 
+                self.combined.save_weights(f"models/CCgan-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}-w-com.h5") 
+                self.discriminator.save_weights(f"models/CCgan-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}-w-dis.h5") 
+                self.generator.save_weights(f"models/CCgan-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}-w-gen.h5") 
         if g_loss[1]<self.threshold:
             self.threshold=g_loss[1]
             self.generator.save(f"models/CCgan-gen-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}_fin.h5")   
             self.discriminator.save(f"models/CCgan-dic-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}_fin.h5")   
             self.combined.save(f"models/CCgan-com-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}_fin.h5")   
-            self.combined.save_weights(f"models/CCgan-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}-w_fin.h5")         
+            self.combined.save_weights(f"models/CCgan-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}-w-com_fin.h5") 
+            self.discriminator.save_weights(f"models/CCgan-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}-w-dis_fin.h5") 
+            self.generator.save_weights(f"models/CCgan-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if corner else 'n'}-w-gen_fin.h5")        
     def build_wrapper(self):
         """
         Returns a func that works as a complete preprocsess tool
@@ -284,8 +288,8 @@ class CCgan():
 
 
 if __name__ == '__main__':
-    cc = CCgan(320,320)
-    cc.build_model()
+    cc = CCgan(256,256)
+    #cc.build_model()
     #cc.train_model()
     cc.load_model()
     cc.load_model_weights()
