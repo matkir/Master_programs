@@ -27,7 +27,7 @@ class ContextEncoder():
         self.img_rows = img_rows # Original is ~720 
         self.channels = 3   # RGB 
         self.img_shape=(self.img_cols,self.img_rows,self.channels)
-        dummy=plotload.load_one_img(self.img_shape, dest='green',extra_dim=True)
+        dummy=plotload.load_one_img(self.img_shape, dest='med/green',extra_dim=True)
         self.dims =cutter.find_square_coords(dummy)                  
         self.combined=None
         self.discriminator=None
@@ -256,25 +256,38 @@ class ContextEncoder():
         from shutil import copyfile
         import sys
         
-        polyps_prep='polyps_prep'
-        polyps='polyps'
-        ulcerative_colitis_prep='ulcerative-colitis_prep'
-        ulcerative_colitis='ulcerative-colitis'
+        if path is not None:
+            dirs_i=[]
+            dirs_o=[]
+            d=next(os.walk(path))[1]
+            for i in d:
+                if i =='none' or i=='green' or i=='preprocessed':
+                    continue
+                dirs_o.append(path+'preprocessed/'+i)
+                dirs_i.append(path+i)
+            for i in dirs_o:
+                if not os.path.exists(i):
+                    os.makedirs(i)                    
+        else:
+            polyps='polyps'
+            ulcerative_colitis='ulcerative-colitis'
+            dirs=[polyps,ulcerative_colitis]
         
-        if not os.path.exists(polyps_prep):
-            os.makedirs(polyps_prep)    
-        if not os.path.exists(ulcerative_colitis_prep):
-            os.makedirs(ulcerative_colitis_prep)    
-           
-        for a in [[polyps_prep,polyps],[ulcerative_colitis_prep,ulcerative_colitis]]:
-            for img_name in tqdm(os.listdir(a[1])):
-                path=os.path.join(a[1],img_name)
+            if not os.path.exists(polyps_prep):
+                os.makedirs(polyps_prep)    
+            if not os.path.exists(ulcerative_colitis_prep):
+                os.makedirs(ulcerative_colitis_prep)    
+        
+        for i,o in tqdm(zip(dirs_i,dirs_o)):
+            for img_name in os.listdir(i):
+                path=os.path.join(i,img_name)
                 img=plotload.load_one_img((self.img_cols,self.img_rows), dest=path, 
                                      extra_dim=True)
                 if cutter.is_green(img):
-                    tmp=cv2.imwrite(os.path.join(a[0],img_name), cv2.cvtColor(127.5*w(img)[0]+127.5,cv2.COLOR_RGB2BGR))
+                    tmp=cv2.imwrite(os.path.join(o,img_name), cv2.cvtColor(127.5*w(img)[0]+127.5,cv2.COLOR_RGB2BGR))
                 else:
-                    tmp=cv2.imwrite(os.path.join(a[0],img_name), cv2.cvtColor(127.5*img[0]+127.5,cv2.COLOR_RGB2BGR))
+                    tmp=cv2.imwrite(os.path.join(o,img_name), cv2.cvtColor(127.5*img[0]+127.5,cv2.COLOR_RGB2BGR))
+                
 
 if __name__ == '__main__':
     a=ContextEncoder(256,256)

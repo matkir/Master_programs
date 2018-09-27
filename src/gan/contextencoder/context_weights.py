@@ -79,7 +79,7 @@ class Weight_model():
 
         model.add(BatchNormalization(momentum=0.8))
         model.add(Conv2D(32, kernel_size=3, padding="same"))
-        model.add(Activation('tanh'))
+        model.add(Activation('relu'))
         if self.corner:
             scale_y=int(np.ceil(self.mask_height/(model.outputs[0].get_shape()[1:3].as_list()[0])))
             scale_x=int(np.ceil(self.mask_width/(model.outputs[0].get_shape()[1:3].as_list()[1])))
@@ -99,7 +99,7 @@ class Weight_model():
                 (int(np.ceil(target_width)),int(np.floor(target_width)))
             )))
         #model.summary()
-        #model.add(Conv2D(8, kernel_size=3, strides=1, padding="same",activation='relu'))
+        model.add(Conv2D(8, kernel_size=3, strides=1, padding="same",activation='relu'))
         model.add(Conv2D(self.channels, kernel_size=3, strides=1, padding="same",activation='tanh'))
         #model.summary()
 
@@ -166,7 +166,7 @@ class Weight_model():
 
         self.combined = Model(masked_img , [gen_missing, valid])
         self.combined.compile(loss=['mse', 'binary_crossentropy'],
-            loss_weights=[0.5, 0.5],
+            loss_weights=[0.1, 0.9],
             optimizer=optimizer_generator)        
         return self.discriminator,self.generator,self.combined
 

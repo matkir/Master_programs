@@ -34,18 +34,21 @@ def data(folders):
 
 
 
-root='/home/mathias/Documents/kvasir-dataset-v2/med/'
+root='/home/mathias/Documents/kvasir-dataset-v2/'
 folders=[]
-folders.append(root+'blurry-nothing')
-folders.append(root+'colon-clear')
+#folders.append(root+'blurry-nothing')
+#folders.append(root+'colon-clear')
 folders.append(root+'dyed-lifted-polyps')
 folders.append(root+'dyed-resection-margins')
-folders.append(root+'instruments')
+folders.append(root+'esophagitis')
+folders.append(root+'normal-z-line')
 folders.append(root+'normal-cecum')
 folders.append(root+'polyps')
-folders.append(root+'stool-inclusions')
-folders.append(root+'stool-plenty')
 folders.append(root+'ulcerative-colitis')
+folders.append(root+'normal-pylorus')
+#folders.append(root+'instruments')
+#folders.append(root+'stool-inclusions')
+#folders.append(root+'stool-plenty')
 none_folder =root+'none' 
 green_folder =root+'green' 
 data(folders)

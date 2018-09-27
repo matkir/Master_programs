@@ -77,9 +77,7 @@ def _find_dims(input_img,show=False):
 
 
 def memoize(f):
-    memo = {(256, 256, 3):(170, 245, 13, 88),
-            (512, 512, 3):(170*2, 245*2, 13*2, 88*2),
-            (300, 300, 3):(204, 300,  0, 100)}
+    memo = {(256, 256, 3): (168, 256, 0, 88)}
     memoize.has_run=False
     def helper(x):
         y=x.shape[-3:]
@@ -132,7 +130,7 @@ def find_square_coords(input_imgs):
             if len(l2)<2:
                 continue
             bottom_left.append((min(l2, key = lambda t: t[0])[0],(max(l2, key = lambda t: t[1]))[1]))
-            top_right.append((max(l2, key = lambda t: t[0])[0]-1,(min(l2, key = lambda t: t[1]))[1])-1)
+            top_right.append(((max(l2, key = lambda t: t[0])[0]+1),((min(l2, key = lambda t: t[1]))[1])-1))
 
         if not bottom_left or not top_right:
             return False,False,False,False
