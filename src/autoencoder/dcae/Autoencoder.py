@@ -141,8 +141,8 @@ class Autoencoder():
             if cur_loss<self.threshold:
                 print(cur_loss)
                 self.threshold=cur_loss
-                self.model.save(f"models/AE-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if mask==0 else 'n'}-fin.h5")   
-                self.model.save_weights(f"models/AE-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if mask==0 else 'n'}-w-fin.h5")   
+                self.model.save(f"models/AE-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if mask==0 else 'n'}.h5")   
+                self.model.save_weights(f"models/AE-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if mask==0 else 'n'}-w.h5")   
         self.model.save(f"models/AE-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if mask==0 else 'n'}-fin.h5")   
         #self.model.save_weights(f"models/AE-{self.img_shape[0]}-{self.img_shape[1]}-{'c' if mask==0 else 'n'}-w-fin.h5")   
         
@@ -226,10 +226,10 @@ class Autoencoder():
         
 if __name__=='__main__':
     A=Autoencoder(256,256)
-    A.build_model()
-    #A.load_model()
-    A.train_model()    
+    #A.build_model()
+    A.load_model()
+    #A.train_model()    
     #A.load_model_weights()
     root='/home/mathias/Documents/kvasir-dataset-v2/med/'    
     w=A.build_wrapper()
-    A.sort_folder(w,path=root)
+    A.sort_folder(w,path='/media/mathias/A_New_Hope/medico_test/')

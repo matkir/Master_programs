@@ -35,7 +35,7 @@ class Weight_model():
                 d = BatchNormalization(momentum=0.8)(d)
             return d
 
-        def deconv2d(layer_input, filters, f_size=4, dropout_rate=0,permanent=False):
+        def deconv2d(layer_input, filters, f_size=8, dropout_rate=0,permanent=False):
             """Layers used during upsampling"""
             u = UpSampling2D(size=2)(layer_input)
             u = Conv2D(filters, kernel_size=f_size, strides=1, padding='same', activation='relu')(u)

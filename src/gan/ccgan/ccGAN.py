@@ -289,13 +289,14 @@ class CCgan():
 
 if __name__ == '__main__':
     cc = CCgan(256,256)
-    #cc.build_model()
-    #cc.train_model()
-    cc.load_model()
-    cc.load_model_weights()
+    cc.build_model()
+    cc.train_model()
+    #cc.load_model()
+    #cc.load_model_weights()
     w=cc.build_wrapper()
     root='/home/mathias/Documents/kvasir-dataset-v2/med/'
     cc.sort_folder(w,path=root)
+    cc.sort_folder(w,path='/media/mathias/A_New_Hope/medico_test/')
     
 
 
