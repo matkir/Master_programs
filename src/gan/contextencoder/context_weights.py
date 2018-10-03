@@ -30,78 +30,51 @@ class Weight_model():
         self.missing_shape = (self.mask_height, self.mask_width, self.channels)
    
     def build_generator_img_size(self):
-         
+
         model = Sequential()
 
         # Encoder
-        model.add(Conv2D(16, kernel_size=3, strides=2, input_shape=self.img_shape, padding="same"))
+        model.add(Conv2D(32, kernel_size=9, strides=2, input_shape=self.img_shape, padding="same"))
         model.add(LeakyReLU(alpha=0.2))
         model.add(BatchNormalization(momentum=0.8))
-        
-        model.add(Conv2D(16, kernel_size=3, strides=2, padding="same"))
+        model.add(Conv2D(64, kernel_size=7, strides=2, padding="same"))
         model.add(LeakyReLU(alpha=0.2))
         model.add(BatchNormalization(momentum=0.8))
-        
-        model.add(Conv2D(32, kernel_size=3, strides=2, padding="same"))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(BatchNormalization(momentum=0.8))   
-        
-        model.add(Conv2D(64, kernel_size=3, strides=2, padding="same"))
+        model.add(Conv2D(128, kernel_size=5, strides=2, padding="same"))
         model.add(LeakyReLU(alpha=0.2))
         model.add(BatchNormalization(momentum=0.8))
-        
-        model.add(Conv2D(128, kernel_size=3, strides=2, padding="same"))
+        model.add(Conv2D(512, kernel_size=3, strides=2, padding="same"))
         model.add(LeakyReLU(alpha=0.2))
-        model.add(BatchNormalization(momentum=0.8))
-        
-       
-        # Dropout
         model.add(Dropout(0.5))
 
         # Decoder
-        
-      
-        model.add(BatchNormalization(momentum=0.8))
+
+        #model.add(BatchNormalization(momentum=0.8))
         model.add(UpSampling2D())
         model.add(Conv2D(128, kernel_size=3, padding="same"))
         model.add(Activation('relu'))
-        
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(UpSampling2D())
-        model.add(Conv2D(64, kernel_size=3, padding="same"))
-        model.add(Activation('relu'))        
-        
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(UpSampling2D())
-        model.add(Conv2D(64, kernel_size=3, padding="same"))
-        model.add(Activation('relu'))        
-        
 
         model.add(BatchNormalization(momentum=0.8))
-        model.add(Conv2D(32, kernel_size=3, padding="same"))
-        model.add(Activation('relu'))
+        model.add(UpSampling2D())
+        model.add(Conv2D(64, kernel_size=5, padding="same"))
+        model.add(Activation('relu'))        
+
         if self.corner:
             scale_y=int(np.ceil(self.mask_height/(model.outputs[0].get_shape()[1:3].as_list()[0])))
             scale_x=int(np.ceil(self.mask_width/(model.outputs[0].get_shape()[1:3].as_list()[1])))
-            print(scale_x,scale_y)
-            print(scale_x,scale_y)
-            print(scale_x,scale_y)
-            print(scale_x,scale_y)
             model.add(UpSampling2D((scale_y,scale_x)))
             height=model.outputs[0].get_shape()[1:3].as_list()[0]
             width=model.outputs[0].get_shape()[1:3].as_list()[1]
             target_height=(height-self.mask_height)/2
             target_width=(width-self.mask_width)/2
-            
-            #MIGHT BE WRONG, but probably not, lol, nevermind!
+
+            #MIGHT BE WRONG, but probably not, lol, nevermind!, errh yes this is right, ?
             model.add(Cropping2D((
                 (int(np.ceil(target_height)),int(np.floor(target_height))),
                 (int(np.ceil(target_width)),int(np.floor(target_width)))
             )))
-        #model.summary()
-        model.add(Conv2D(8, kernel_size=3, strides=1, padding="same",activation='relu'))
+        model.add(Conv2D(8, kernel_size=5, strides=1, padding="same",activation='relu'))
         model.add(Conv2D(self.channels, kernel_size=3, strides=1, padding="same",activation='tanh'))
-        #model.summary()
 
         masked_img = Input(shape=self.img_shape)
         gen_missing = model(masked_img)
@@ -148,16 +121,16 @@ class Weight_model():
 
 
     def build_CE(self):
-        optimizer_generator = Adam()
-        optimizer_discriminator = SGD()
+        optimizer_generator = Adam(lr=0.001)
+        optimizer_discriminator = SGD(lr=0.001)
         self.discriminator = self.build_discriminator()
         self.discriminator.compile(loss='binary_crossentropy',
             optimizer=optimizer_discriminator,
             metrics=['accuracy'])
 
         self.generator = self.build_generator_img_size()
-        #self.generator.compile(loss=['binary_crossentropy'],
-        #    optimizer=optimizer)
+        self.generator.compile(loss=['binary_crossentropy'],
+            optimizer=optimizer_generator)
 
         masked_img = Input(shape=self.img_shape)
         gen_missing = self.generator(masked_img)
@@ -166,7 +139,7 @@ class Weight_model():
 
         self.combined = Model(masked_img , [gen_missing, valid])
         self.combined.compile(loss=['mse', 'binary_crossentropy'],
-            loss_weights=[0.1, 0.9],
+            loss_weights=[0.65, 0.35],
             optimizer=optimizer_generator)        
         return self.discriminator,self.generator,self.combined
 
@@ -174,8 +147,6 @@ if __name__=='__main__':
     print("Usage: Same weights used by all programs")
     img_rows = 576
     img_cols = 720
-    mask_width = 208
-    mask_height = 280
     model=Weight_model(img_rows, img_cols, mask_width,mask_height)
     a=model.build_generator_img_size()
     print("")

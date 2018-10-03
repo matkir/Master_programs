@@ -84,7 +84,7 @@ def load_polyp_data(img_shape,data_type=None,rot=False,crop=True,glare=False):
         print(f"loading {len(os.listdir(folder))} images")
 
     i=0
-    for img in tqdm(os.listdir(folder)):
+    for img in tqdm(sorted(os.listdir(folder))):
         path=os.path.join(folder,img)
         save=cv2.cvtColor(cv2.imread(path), cv2.COLOR_BGR2RGB)
         if crop:
@@ -101,7 +101,7 @@ def load_polyp_data(img_shape,data_type=None,rot=False,crop=True,glare=False):
             data[i]=save
             i+=1
     data = (data.astype(np.float32) - 127.5) / 127.5
-    np.save("train_data.npy", data)
+    #np.save("train_data.npy", data)
     return data
 
 

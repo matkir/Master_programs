@@ -289,9 +289,9 @@ class CCgan():
 
 if __name__ == '__main__':
     cc = CCgan(256,256)
-    cc.build_model()
-    cc.train_model()
-    #cc.load_model()
+    #cc.build_model()
+    #cc.train_model()
+    cc.load_model()
     #cc.load_model_weights()
     w=cc.build_wrapper()
     root='/home/mathias/Documents/kvasir-dataset-v2/med/'

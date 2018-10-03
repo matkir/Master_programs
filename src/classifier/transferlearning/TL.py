@@ -3,56 +3,50 @@ from keras.preprocessing.image import ImageDataGenerator
 from keras import optimizers
 from keras.models import Sequential, Model 
 from keras.layers import Dropout, Flatten, Dense, GlobalAveragePooling2D
-from keras.optimizers import Adam
+from keras.optimizers import Adam, SGD
 from keras import backend as k 
 from keras.callbacks import ModelCheckpoint, LearningRateScheduler, TensorBoard, EarlyStopping
 import os
-import ..autoencoder.dcae as auto
+#import ..autoencoder.dcae as auto
 
 class TL():
-    def __init__(self):
+    def __init__(self,folder,discriptor):
         self.img_rows = 256
         self.img_cols = 256        
         self.channels = 3
         self.img_shape = (self.img_cols, self.img_rows, self.channels)
         model,l_out=self.make_model()
-        o=Adam(lr=0.0003)
-        self.VGG=Model(model.input,l_out)
-        self.VGG.compile(o, loss='categorical_crossentropy', metrics=['accuracy']) 
+        #o=Adam()
+        o=SGD(lr=0.004, nesterov=True)
+        self.model=Model(model.input,l_out)
+        self.model.compile(o, loss='categorical_crossentropy', metrics=['accuracy']) 
         
         
-        folder=os.path.expanduser("~")
-        folder=folder+"/Documents/mediaeval/Medico_2018_development_set/"        
-        self.train_dir = folder
-        self.val_dir   = folder
-        
+        #folder=os.path.expanduser("~")
+        self.discriptor=discriptor
+        #folder="/media/mathias/A_New_Hope/medicoTL/run_AE/medico/"        
+        self.folder=folder
+        self.train_dir = self.folder+"train"
+        self.val_dir   = self.folder+"val"
+        self.weight_dir= self.folder+"../"
         self.batch_size = 20
         
     def train(self):
-        a=Autoencoder(self.img_cols,self.img_rows)
-        
         train_datagen = ImageDataGenerator(
             rescale = 1./255,
             horizontal_flip = True,
-            vertical_flip = True, 
-            fill_mode = "nearest",
-            zoom_range = 0.3,
-            width_shift_range = 0.3,
-            height_shift_range=0.3,
-            rotation_range=30,
-            validation_split=0.1,
-            preprocessing_function=a)
+            vertical_flip = True,
+            )#rotation_range=30)
         
         val_datagen = ImageDataGenerator(
-            rescale = 1./255,
-            validation_split=0.9)    
+            rescale = 1./255)
         
         train_generator = train_datagen.flow_from_directory(self.train_dir,
                                                             target_size = (self.img_cols, self.img_rows),
                                                             batch_size = self.batch_size, 
                                                             class_mode = "categorical")
         
-        val_generator = train_datagen.flow_from_directory(self.train_dir,
+        val_generator = val_datagen.flow_from_directory(self.val_dir,
                                                                 target_size = (self.img_cols, self.img_rows),
                                                                 batch_size = self.batch_size, 
                                                                 class_mode = "categorical")        
@@ -61,38 +55,51 @@ class TL():
         file_count=len(files)
         #checkpoint = ModelCheckpoint(f"vgg16_{file_count}.h5", monitor='val_acc', verbose=1, save_best_only=True, save_weights_only=True, mode='auto', period=1)
         #checkpoint = ModelCheckpoint(f"densenet_{file_count}.h5", monitor='val_acc', verbose=1, save_best_only=True, save_weights_only=True, mode='auto', period=1)
-        checkpoint = ModelCheckpoint(f"resNet50_{file_count}.h5", monitor='val_acc', verbose=1, save_best_only=True, save_weights_only=True, mode='auto', period=1)
-        early = EarlyStopping(monitor='val_acc', min_delta=0, patience=5, verbose=1, mode='auto')
-        board = TensorBoard(f"./logs/run_{file_count}")
+        #checkpoint = ModelCheckpoint(f"resNet50_{file_count}.h5", monitor='val_acc', verbose=1, save_best_only=True, save_weights_only=True, mode='auto', period=1)
+        checkpoint = ModelCheckpoint(folder+f"InceptionResNetV2_{self.discriptor}_{file_count+1}.h5", monitor='val_acc', verbose=1, save_best_only=True, save_weights_only=False, mode='auto', period=1)
+        early = EarlyStopping(monitor='val_acc', min_delta=0, patience=4, verbose=1, mode='auto')
+        board = TensorBoard(f"./logs/run_{self.discriptor}_{file_count+1}")
         
         # Train the model 
-        self.VGG.fit_generator(
+        self.model.fit_generator(
             train_generator,
-            epochs = 10,
-            validation_data=train_generator,
+            epochs = 50,
+            validation_data=val_generator,
             callbacks = [checkpoint, early, board])
 
         
     def make_model(self):
-        #model = applications.VGG19(weights = "imagenet", include_top=False,input_shape = self.img_shape)
-        #model = applications.DenseNet201(weights='imagenet',include_top=False,input_shape=self.img_shape)     
-        model = applications.ResNet50(include_top=False, input_shape=self.img_shape)
-        model.summary()
-        
+        model = applications.inception_resnet_v2.InceptionResNetV2(include_top=False,input_shape=self.img_shape) 
+
         #Freezing 
-        for layer in model.layers[:600]:
-            layer.trainable = False
+        #for layer in model.layers[:600]:
+        #    layer.trainable = False
         
         #adding custom layer
         l=model.output
-        l=Flatten()(l)
-        l=Dense(512, activation='relu')(l)
-        l=Dropout(0.25)(l)
-        l=Dense(512, activation='relu')(l)
+        l=GlobalAveragePooling2D()(l)
         l_out=Dense(16,activation='softmax')(l) 
         return model,l_out
 
 
-
-transfer=TL()
+"""
+folder="/media/mathias/A_New_Hope/medicoTL/run_vanilla/medico/"        
+transfer=TL(folder,"Vanilla")
 transfer.train()
+
+folder="/media/mathias/A_New_Hope/medicoTL/run_CCGAN/medico/"        
+transfer=TL(folder,"CC_GAN")
+transfer.train()
+
+folder="/media/mathias/A_New_Hope/medicoTL/run_ce/medico/"        
+transfer=TL(folder,"Contextencoder")
+transfer.train()
+
+folder="/media/mathias/A_New_Hope/medicoTL/run_AE/medico/"        
+transfer=TL(folder,"Autoencoder")
+transfer.train()
+"""
+folder="/media/mathias/A_New_Hope/medicoTL/run_clip/medico/"        
+transfer=TL(folder,"Clip")
+transfer.train()
+

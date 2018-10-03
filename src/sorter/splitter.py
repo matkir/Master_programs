@@ -3,6 +3,11 @@ import sys
 import math
 import random
 import shutil
+"""
+Made by Rune Borgli, not my work at all, if it crashes please contact him.
+
+
+"""
 
 TRAIN_RATE = 70
 TEST_RATE = 30
