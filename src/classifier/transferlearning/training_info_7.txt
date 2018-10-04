@@ -1,0 +1,10 @@
+
+Lr=0.004
+
+Epoch=50
+
+Patience=4
+
+Type=SGD
+
+Batch=20

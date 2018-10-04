@@ -87,6 +87,7 @@ def run(testing_name,testing_type,num):
         path=f"{val_dir}{class_name}"
         imgs=load_data((256,256,3),path)
         label=np.argmax(model.predict(imgs),axis=-1)
+        print()
         for l in label:
             confusion_data[cnt,0]=class_num
             confusion_data[cnt,1]=l
@@ -114,7 +115,7 @@ def run(testing_name,testing_type,num):
     #plt.show()
     print()
 
-n=6    
+n=8    
 testing_name  = "CC_GAN"
 testing_type  = "run_CCGAN"
 run(testing_name,testing_type,n)
