@@ -1,0 +1,12 @@
+
+Lr=0.04
+
+Epoch=50
+
+Patience=4
+
+Type=SGD
+
+Batch=24
+
+img_rot=30

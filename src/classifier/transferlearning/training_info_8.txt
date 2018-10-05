@@ -1,5 +1,0 @@
-self.lr=0.004
-self.epoch=50
-self.patience=4
-self.otype="SGD"
-self.batch_size = 20

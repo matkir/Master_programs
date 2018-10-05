@@ -55,6 +55,42 @@ def load_data(img_shape, folder):
     data=np.true_divide(data,255)
     return data
 
+def guess_label(imgs,model,tresh):
+    """
+    out-of-patient
+    instruments
+    dyed-lifted-polyps
+    dyed-resection-margins
+    polyps
+    esophagitis
+    ulcerative-colitis
+    retroflex-rectum
+    retroflex-stomach
+    normal-cecum
+    normal-pylorus
+    normal-z-line
+    stool-plenty
+    stool-inclusions
+    colon-clear
+    blurry-nothing    
+    """
+    #we only care about [2,3,9,10,11,12,15] where the mixup happens
+    priority=np.array([15,14,2,3,5,1,9,10,11,0,4,7,8,13,12,6])
+    label=model.predict(imgs)
+    ret=np.zeros(shape=(imgs.shape[0]))[:,None]
+    check=lambda a, b: any(i in b for i in a)
+    for i,l in enumerate(label):
+        get=np.argwhere(l > tresh)
+        if check([2,3,9,10,11,12,15],np.squeeze(get)) and len(get)>1:
+            ret[i]=np.squeeze(get)[np.argmin(priority[np.squeeze(get)])]
+            print(ret[i-1]," becomes: ",ret[i])
+        else:
+            ret[i]=np.argmax(l)
+    return ret  
+        
+            
+    
+    
 def run(testing_name,testing_type,num):
     #testing_name  = "CC_GAN"
     #testing_type  = "run_CCGAN"
@@ -86,11 +122,12 @@ def run(testing_name,testing_type,num):
     for class_num,class_name in enumerate(classes):
         path=f"{val_dir}{class_name}"
         imgs=load_data((256,256,3),path)
-        label=np.argmax(model.predict(imgs),axis=-1)
+        #label=np.argmax(model.predict(imgs),axis=-1)
+        label=guess_label(imgs,model,0.20)
         print()
         for l in label:
-            confusion_data[cnt,0]=class_num
-            confusion_data[cnt,1]=l
+            confusion_data[cnt,0]=int(class_num)
+            confusion_data[cnt,1]=int(l)
             cnt+=1
     print(cnt,cpt)
     f=open(f'{testing_name}_{weight_type}.txt',"w+")
@@ -115,7 +152,7 @@ def run(testing_name,testing_type,num):
     #plt.show()
     print()
 
-n=8    
+n=9    
 testing_name  = "CC_GAN"
 testing_type  = "run_CCGAN"
 run(testing_name,testing_type,n)

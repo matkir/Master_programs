@@ -17,7 +17,7 @@ class TL():
         self.img_shape = (self.img_cols, self.img_rows, self.channels)
         model,l_out=self.make_model()
         #o=Adam()
-        self.lr=0.003
+        self.lr=0.04 #0.004
         self.epoch=50
         self.patience=4
         self.otype="SGD"
@@ -63,7 +63,7 @@ class TL():
         checkpoint = ModelCheckpoint(folder+f"InceptionResNetV2_{self.discriptor}_{file_count+1}.h5", monitor='val_acc', verbose=1, save_best_only=True, save_weights_only=False, mode='auto', period=1)
         early = EarlyStopping(monitor='val_acc', min_delta=0, patience=self.patience, verbose=1, mode='auto')
         board = TensorBoard(f"./logs/run_{self.discriptor}_{file_count+1}")
-        f = open(f"training_info_{file_count}.txt","w+")
+        f = open(f"training_info_{file_count+1}.txt","w+")
         f.write(f"\nLr={self.lr}\n")
         f.write(f"\nEpoch={self.epoch}\n")
         f.write(f"\nPatience={self.patience}\n")
