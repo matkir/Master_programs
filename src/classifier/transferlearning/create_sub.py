@@ -25,7 +25,7 @@ def run(testing_name,testing_type,num):
     #import 
     folder=f"/media/mathias/A_New_Hope/medicoTL/{testing_type}/"        
     test_dir   = folder+"preprocessed_test/Medico_2018_test_set"
-    weight_dir = folder
+    weight_dir = f'/media/mathias/A_New_Hope/medicoTL/{testing_type}/medico/'
     weight_type=f"InceptionResNetV2_{testing_name}_{num}.h5"
     
     
