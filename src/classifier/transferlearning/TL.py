@@ -17,11 +17,11 @@ class TL():
         self.img_shape = (self.img_cols, self.img_rows, self.channels)
         model,l_out=self.make_model()
         #o=Adam()
-        self.lr=0.004
+        self.lr=0.003
         self.epoch=50
         self.patience=4
         self.otype="SGD"
-        self.batch_size = 20
+        self.batch_size = 24
         o=SGD(lr=self.lr, nesterov=True)
         self.model=Model(model.input,l_out)
         self.model.compile(o, loss='categorical_crossentropy', metrics=['accuracy']) 

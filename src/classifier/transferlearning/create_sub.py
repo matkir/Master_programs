@@ -47,7 +47,7 @@ def run(testing_name,testing_type,num):
     model.load_weights(weight_dir+weight_type)
     
     l=model.predict(imgs)
-    f= open(f"memed_groupname_detection{weight_type}_numtrain.txt","w+")
+    f= open(f"memed_groupname_detection{weight_type}_{num}_numtrain.txt","w+")
     l_names=sorted(os.listdir(test_dir))
     for i,data in enumerate(l):
         f.write(f"{l_names[i]},{classes[np.argmax(data)]},{np.max(data)}\n")
