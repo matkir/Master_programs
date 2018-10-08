@@ -123,7 +123,7 @@ def run(testing_name,testing_type,num):
         path=f"{val_dir}{class_name}"
         imgs=load_data((256,256,3),path)
         #label=np.argmax(model.predict(imgs),axis=-1)
-        label=guess_label(imgs,model,0.20)
+        label=guess_label(imgs,model,0.40)
         print()
         for l in label:
             confusion_data[cnt,0]=int(class_num)
