@@ -84,7 +84,7 @@ def run(testing_name,testing_type,num):
     
     #l=model.predict(imgs)
     l=guess_label(imgs,model,0.40)
-    f= open(f"memed_groupname_detection{weight_type}_{num}_3712.txt","w+")
+    f= open(f"me18med_UMM-SIM_detection_{weight_type}_{num}_3712.txt","w+")
     l_names=sorted(os.listdir(test_dir))
     for i,data in enumerate(l):
         f.write(f"{l_names[i]},{classes[int(data[0])]},{data[1]}\n")
@@ -92,7 +92,7 @@ def run(testing_name,testing_type,num):
     print("done!")
 
 
-n=9    
+n=11    
 testing_name  = "CC_GAN"
 testing_type  = "run_CCGAN"
 run(testing_name,testing_type,n)

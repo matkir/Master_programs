@@ -7,7 +7,7 @@ from keras import applications
 import os
 from tqdm import tqdm
 import cv2
-from sklearn.metrics import confusion_matrix, matthews_corrcoef, accuracy_score, f1_score
+from sklearn.metrics import confusion_matrix, matthews_corrcoef, accuracy_score, f1_score, recall_score, precision_score 
 import itertools
 
 def plot_confusion_matrix(cm, classes,
@@ -54,6 +54,24 @@ def load_data(img_shape, folder):
         i+=1
     data=np.true_divide(data,255)
     return data
+
+def perf_measure(y_actual, y_hat):
+    TP = 0
+    FP = 0
+    TN = 0
+    FN = 0
+
+    for i in range(len(y_hat)): 
+        if y_actual[i]==y_hat[i]==1:
+            TP += 1
+        if y_hat[i]==1 and y_actual[i]!=y_hat[i]:
+            FP += 1
+        if y_actual[i]==y_hat[i]==0:
+            TN += 1
+        if y_hat[i]==0 and y_actual[i]!=y_hat[i]:
+            FN += 1
+
+    return(TP, FP, TN, FN)
 
 def guess_label(imgs,model,tresh):
     """
@@ -132,12 +150,25 @@ def run(testing_name,testing_type,num):
     print(cnt,cpt)
     f=open(f'{testing_name}_{weight_type}.txt',"w+")
     print(confusion_data)
+    f.write("\nRecall_score\n")
+    f.write(f"{recall_score(confusion_data[:,0], confusion_data[:,1],average='weighted')}")    
+    
+    f.write("\nPrecission\n")
+    f.write(f"{precision_score(confusion_data[:,0], confusion_data[:,1],average='weighted')}")    
+    
+    f.write("\nSpesificy_score\n")
+    TP, FP, TN, FN = perf_measure(confusion_data[:,0], confusion_data[:,1])
+    f.write(f"{TN / (TN+FP)}")
+    
     f.write("\nAccuracy_score\n")
     f.write(f"{accuracy_score(confusion_data[:,0], confusion_data[:,1])}")    
-    f.write("\nf1_score\n")
-    f.write(f"{f1_score(confusion_data[:,0], confusion_data[:,1],average='weighted')}")
+    
     f.write("\nMatthews_corrcoef\n")
     f.write(f"{matthews_corrcoef(confusion_data[:,0], confusion_data[:,1])}")
+    
+    f.write("\nf1_score\n")
+    f.write(f"{f1_score(confusion_data[:,0], confusion_data[:,1],average='weighted')}")    
+    
     # Compute confusion matrix
     cnf_matrix = confusion_matrix(confusion_data[:,0], confusion_data[:,1] )
     np.set_printoptions(precision=2)
@@ -152,7 +183,7 @@ def run(testing_name,testing_type,num):
     #plt.show()
     print()
 
-n=9    
+n=11    
 testing_name  = "CC_GAN"
 testing_type  = "run_CCGAN"
 run(testing_name,testing_type,n)
