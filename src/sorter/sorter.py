@@ -34,7 +34,7 @@ def data(folders):
 
 
 
-root='/home/mathias/Documents/kvasir-dataset-v2/'
+root='/media/mathias/A_New_Hope/thesis_programs/Dataset/kvasir-dataset-v2/original/'
 folders=[]
 #folders.append(root+'blurry-nothing')
 #folders.append(root+'colon-clear')

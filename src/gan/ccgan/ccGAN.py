@@ -147,6 +147,7 @@ class CCgan():
             t(self.discriminator,False)
             g_loss = self.combined.train_on_batch(masked_imgs, [X_train, valid])
             t(self.discriminator,True)
+            
             # ---------------------
             #  Train discriminator
             # ---------------------
